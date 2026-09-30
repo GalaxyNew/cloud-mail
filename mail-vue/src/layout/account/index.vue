@@ -597,8 +597,12 @@ path[fill="#ffdda1"] {
 .add-account-dialog.el-dialog {
   width: 480px !important;
   max-width: calc(100vw - 32px) !important;
+  height: fit-content !important;
+  min-height: auto !important;
+  flex: 0 0 auto !important;
+  align-self: center !important;
+  margin: auto !important;
   border-radius: 14px !important;
-  margin: 0 auto !important;
   overflow: hidden;
 }
 
