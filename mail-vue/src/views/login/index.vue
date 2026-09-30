@@ -381,6 +381,14 @@
               </a>
             </template>
           </div>
+
+          <!-- Fast Generator Link -->
+          <div class="generator-entry-wrap">
+            <a class="generator-entry-link" @click="router.push('/generator')">
+              <Icon icon="solar:magic-stick-3-bold-duotone" width="16" height="16" />
+              <span>快速生成 @tv987.shop 邮箱（免验证通道）→</span>
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -1805,6 +1813,35 @@ function submitRegister() {
     flex-direction: column;
     gap: 14px;
     padding-top: 10px;
+  }
+}
+
+.generator-entry-wrap {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+
+  .generator-entry-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px solid rgba(0, 242, 254, 0.3);
+    color: #00f2fe;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+
+    &:hover {
+      background: rgba(0, 242, 254, 0.18);
+      border-color: #00f2fe;
+      box-shadow: 0 0 14px rgba(0, 242, 254, 0.35);
+      transform: translateY(-1px);
+    }
   }
 }
 </style>

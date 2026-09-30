@@ -60,6 +60,15 @@ const routes = [
         component: () => import('@/views/login/index.vue')
     },
     {
+        path: '/generator',
+        name: 'generator',
+        component: () => import('@/views/generator/index.vue')
+    },
+    {
+        path: '/quick-create',
+        redirect: '/generator'
+    },
+    {
         path: '/test',
         name: 'test',
         component: () => import('@/views/test/index.vue')
@@ -99,8 +108,10 @@ router.beforeEach((to, from, next) => {
     }
 
     const token = localStorage.getItem('token')
+    const publicPaths = ['/login', '/generator', '/quick-create']
+    const isPublic = publicPaths.some(p => to.path.startsWith(p))
 
-    if (!token && !to.path.startsWith('/login')) {
+    if (!token && !isPublic) {
         return next({name: 'login'})
     }
 
