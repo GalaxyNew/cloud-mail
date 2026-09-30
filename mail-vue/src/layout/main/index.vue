@@ -56,6 +56,11 @@ function showNotice(data) {
     return;
   }
 
+  // Do not show default legal disclaimer notice
+  if (data.noticeContent && (data.noticeContent.includes('违法业务') || data.noticeContent.includes('法律责任'))) {
+    return;
+  }
+
   if (elNotification) {
     elNotification.close()
   }

@@ -54,24 +54,24 @@
               <el-tag>{{ userStore.user.role.name }}</el-tag>
             </div>
             <div class="action-info">
-              <div>
-                <span style="margin-right: 10px">{{ $t('sendCount') }}</span>
-                <span style="margin-right: 10px">{{ $t('accountCount') }}</span>
-              </div>
-              <div>
-                <div>
+              <div class="info-row">
+                <span class="info-label">{{ $t('sendCount') }}</span>
+                <div class="info-val">
                   <span v-if="sendCount" style="margin-right: 5px">{{ sendCount }}</span>
-                  <el-tag v-if="!hasPerm('email:send')">{{ sendType }}</el-tag>
-                  <el-tag v-else>{{ sendType }}</el-tag>
+                  <el-tag v-if="!hasPerm('email:send')" size="small">{{ sendType }}</el-tag>
+                  <el-tag v-else size="small">{{ sendType }}</el-tag>
                 </div>
-                <div>
-                  <el-tag v-if="settingStore.settings.manyEmail || settingStore.settings.addEmail">
+              </div>
+              <div class="info-row">
+                <span class="info-label">{{ $t('accountCount') }}</span>
+                <div class="info-val">
+                  <el-tag size="small" v-if="settingStore.settings.manyEmail || settingStore.settings.addEmail">
                     {{ $t('disabled') }}
                   </el-tag>
                   <span v-else-if="accountCount && hasPerm('account:add')"
                         style="margin-right: 5px">{{ $t('totalUserAccount', {msg: accountCount}) }}</span>
-                  <el-tag v-else-if="!accountCount && hasPerm('account:add')">{{ $t('unlimited') }}</el-tag>
-                  <el-tag v-else-if="!hasPerm('account:add')">{{ $t('unauthorized') }}</el-tag>
+                  <el-tag size="small" v-else-if="!accountCount && hasPerm('account:add')">{{ $t('unlimited') }}</el-tag>
+                  <el-tag size="small" v-else-if="!hasPerm('account:add')">{{ $t('unauthorized') }}</el-tag>
                 </div>
               </div>
             </div>
@@ -586,9 +586,28 @@ html:not(.dark) {
     padding-top: 14px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 8px;
     font-size: 12px;
     color: #94a3b8;
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .info-label {
+      color: #94a3b8;
+      font-weight: 500;
+    }
+
+    .info-val {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
   }
 
   .logout {

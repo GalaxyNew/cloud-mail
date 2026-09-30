@@ -395,22 +395,54 @@ function setAsTop(account, index) {
   });
 }
 
-async function copyAccount(account) {
+function fallbackCopy(text) {
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  textarea.style.left = '-9999px';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
   try {
-    await navigator.clipboard.writeText(account);
-    ElMessage({
-      message: t('copySuccessMsg'),
-      type: 'success',
-      plain: true,
-    })
-  } catch (err) {
-    console.error(`${t('copyFailMsg')}:`, err);
+    const successful = document.execCommand('copy');
+    if (successful) {
+      ElMessage({
+        message: t('copySuccessMsg'),
+        type: 'success',
+        plain: true,
+      });
+    } else {
+      throw new Error('execCommand failed');
+    }
+  } catch (e) {
     ElMessage({
       message: t('copyFailMsg'),
       type: 'error',
       plain: true,
-    })
+    });
+  } finally {
+    document.body.removeChild(textarea);
   }
+}
+
+async function copyAccount(account) {
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(account);
+      ElMessage({
+        message: t('copySuccessMsg'),
+        type: 'success',
+        plain: true,
+      });
+      return;
+    } catch (err) {
+      fallbackCopy(account);
+      return;
+    }
+  }
+  fallbackCopy(account);
 }
 
 function getAccountList() {

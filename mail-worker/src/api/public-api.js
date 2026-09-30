@@ -16,3 +16,8 @@ app.post('/public/addUser', async (c) => {
 	await publicService.addUser(c, await c.req.json());
 	return c.json(result.ok());
 });
+
+app.post('/public/generator/create', async (c) => {
+	const data = await publicService.generatorCreateAccount(c, await c.req.json());
+	return c.json(result.ok(data));
+});

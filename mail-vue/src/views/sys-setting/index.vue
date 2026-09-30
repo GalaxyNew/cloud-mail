@@ -83,6 +83,30 @@
                   </el-button>
                 </div>
               </div>
+              <div class="setting-item">
+                <div>
+                  <span>{{ locale === 'en' ? 'Quick Generator Target Account' : '快速生成邮箱归属账号' }}</span>
+                  <el-tooltip effect="dark" :content="locale === 'en' ? 'Select which user account the public fast-generated emails will be assigned to' : '通过快速免验证页面生成的新邮箱，将自动归属于所选的用户账号，收到邮件可在该账号收件箱直接查看'">
+                    <Icon class="warning" icon="fe:warning" width="18" height="18"/>
+                  </el-tooltip>
+                </div>
+                <div>
+                  <el-select
+                      v-model="setting.generatorTargetUserId"
+                      @change="changeGeneratorTargetUser"
+                      placeholder="选择归属账号"
+                      filterable
+                      style="width: 170px;"
+                  >
+                    <el-option
+                        v-for="u in userOptions"
+                        :key="u.userId"
+                        :label="u.email + (u.type === 0 ? ' (管理员)' : '')"
+                        :value="u.userId"
+                    />
+                  </el-select>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -948,10 +972,28 @@ import {getTextWidth} from "@/utils/text.js";
 import {fileToBase64} from "@/utils/file-utils.js"
 import {useI18n} from 'vue-i18n';
 import axios from "axios";
+import {userList} from "@/request/user.js";
+import {hasPerm} from "@/perm/perm.js";
 
 defineOptions({
   name: 'sys-setting'
 })
+
+const userOptions = ref([])
+
+function loadUserOptions() {
+  if (hasPerm('user:query') || userStore.user.type === 0) {
+    userList({ size: 100 }).then(res => {
+      userOptions.value = res.list || []
+    }).catch(e => {
+      console.warn('Load user list notice:', e)
+    })
+  }
+}
+
+function changeGeneratorTargetUser(userId) {
+  editSetting({ generatorTargetUserId: userId }, false)
+}
 
 const currentVersion = 'v3.3.0'
 const hasUpdate = ref(false)
@@ -1121,6 +1163,7 @@ function getSettings() {
     resetEmailPrefix()
     resetBlackList()
     resetAiCodeFilter()
+    loadUserOptions()
     nextTick(() => {
       settingReady.value = true
     })

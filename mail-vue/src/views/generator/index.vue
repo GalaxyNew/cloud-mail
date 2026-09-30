@@ -97,18 +97,6 @@
                 </button>
               </div>
 
-              <!-- Real-time Preview Pill -->
-              <div class="preview-box" v-if="emailPrefix.trim()">
-                <div class="preview-left">
-                  <span class="preview-label">完整邮箱地址：</span>
-                  <span class="preview-email">{{ fullPreviewEmail }}</span>
-                </div>
-                <button class="preview-copy-btn" @click="copyText(fullPreviewEmail)" title="复制此邮箱">
-                  <Icon icon="solar:copy-bold-duotone" width="16" height="16" />
-                  <span>复制</span>
-                </button>
-              </div>
-
               <!-- Create Button -->
               <button 
                 class="action-btn create-btn" 
@@ -163,6 +151,10 @@
                         {{ item.time || '今日创建' }}
                       </span>
                       <span class="item-domain-tag">@tv987.shop</span>
+                      <span class="item-user-tag" v-if="item.assignedUser">
+                        <Icon icon="solar:user-bold" width="11" height="11" />
+                        归属: {{ item.assignedUser }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -213,7 +205,7 @@ import { useRouter } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useUiStore } from '@/store/ui.js';
-import { accountAdd } from '@/request/account.js';
+import { accountAdd, generatorCreate } from '@/request/account.js';
 
 const router = useRouter();
 const uiStore = useUiStore();
@@ -224,10 +216,6 @@ const todayList = ref([]);
 const STORAGE_KEY = 'cloudmail_today_created_tv987';
 
 const hasToken = computed(() => !!localStorage.getItem('token'));
-const fullPreviewEmail = computed(() => {
-  const p = emailPrefix.value.trim();
-  return p ? `${p}@tv987.shop` : '';
-});
 
 // Get current date string formatted as YYYY-MM-DD
 function getTodayDateString() {
@@ -309,13 +297,6 @@ async function handleCreate() {
   const todayStr = getTodayDateString();
   const timeStr = getCurrentTimeString();
 
-  // If user has token, attempt accountAdd via backend in background
-  if (hasToken.value) {
-    accountAdd(fullEmail).catch(e => {
-      console.warn('Backend accountAdd notice:', e);
-    });
-  }
-
   // Check if this email was already created today
   const exists = todayList.value.some(item => item.email.toLowerCase() === fullEmail.toLowerCase());
   if (exists) {
@@ -327,6 +308,24 @@ async function handleCreate() {
     return;
   }
 
+  // Call public generatorCreate API to register email under the assigned target account
+  let assignedUserEmail = '';
+  try {
+    const res = await generatorCreate(fullEmail);
+    if (res && res.targetUserEmail) {
+      assignedUserEmail = res.targetUserEmail;
+    }
+  } catch (e) {
+    console.warn('Backend generatorCreate notice:', e);
+  }
+
+  // Also if user has token, attempt accountAdd via backend
+  if (hasToken.value) {
+    accountAdd(fullEmail).catch(e => {
+      console.warn('Backend accountAdd notice:', e);
+    });
+  }
+
   const record = {
     id: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     email: fullEmail,
@@ -334,6 +333,7 @@ async function handleCreate() {
     suffix: '@tv987.shop',
     date: todayStr,
     time: timeStr,
+    assignedUser: assignedUserEmail,
     createTimestamp: Date.now(),
     justCopied: false
   };
@@ -346,9 +346,11 @@ async function handleCreate() {
   try {
     await navigator.clipboard.writeText(fullEmail);
     ElMessage({
-      message: `🎉 邮箱创建成功并已复制：${fullEmail}`,
+      message: assignedUserEmail
+        ? `🎉 邮箱创建成功并已复制！已归属于账号：${assignedUserEmail}`
+        : `🎉 邮箱创建成功并已复制：${fullEmail}`,
       type: 'success',
-      duration: 3000,
+      duration: 3500,
       plain: true
     });
   } catch (err) {
@@ -741,6 +743,18 @@ onMounted(() => {
         border: 1px solid rgba(0, 242, 254, 0.2);
         color: #7dd3fc;
       }
+      .item-user-tag {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        background: rgba(0, 255, 157, 0.1);
+        border: 1px solid rgba(0, 255, 157, 0.3);
+        color: #00ff9d;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 11px;
+      }
 
       .copy-btn {
         background: rgba(0, 242, 254, 0.12);
@@ -970,6 +984,18 @@ onMounted(() => {
         background: #f0f2f5;
         border: 1px solid #e4e7ed;
         color: #606266;
+      }
+      .item-user-tag {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        background: #f6ffed;
+        border: 1px solid #b7eb8f;
+        color: #52c41a;
+        padding: 1px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+        font-size: 11px;
       }
 
       .copy-btn {

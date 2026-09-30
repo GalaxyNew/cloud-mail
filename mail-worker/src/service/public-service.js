@@ -12,7 +12,11 @@ import reqUtils from '../utils/req-utils';
 import dayjs from 'dayjs';
 import { isDel, roleConst } from '../const/entity-const';
 import email from '../entity/email';
+import account from '../entity/account';
+import user from '../entity/user';
 import userService from './user-service';
+import accountService from './account-service';
+import settingService from './setting-service';
 import KvConst from '../const/kv-const';
 
 const publicService = {
@@ -188,8 +192,82 @@ const publicService = {
 		if (!await cryptoUtils.verifyPassword(password, userRow.salt, userRow.password)) {
 			throw new BizError(t('IncorrectPwd'));
 		}
+	},
+
+	async generatorCreateAccount(c, params) {
+		let { email } = params;
+		if (!email) {
+			throw new BizError(t('emptyEmail'));
+		}
+		email = email.trim().toLowerCase();
+		if (!verifyUtils.isEmail(email)) {
+			throw new BizError(t('notEmail'));
+		}
+
+		// 1. Get generatorTargetUserId from KV/setting
+		const settingRow = await settingService.query(c);
+		let targetUserId = 0;
+		const kvTarget = await c.env.kv.get('generator_target_user_id');
+		if (kvTarget) {
+			targetUserId = Number(kvTarget);
+		} else if (settingRow.generatorTargetUserId) {
+			targetUserId = Number(settingRow.generatorTargetUserId);
+		}
+
+		// 2. Resolve target user
+		let targetUser = null;
+		if (targetUserId > 0) {
+			targetUser = await userService.selectById(c, targetUserId);
+		}
+
+		// Fallback to admin user if not found
+		if (!targetUser) {
+			targetUser = await userService.selectByEmail(c, c.env.admin);
+			if (targetUser) {
+				targetUserId = targetUser.userId;
+			}
+		}
+
+		// Fallback to first normal user if admin not found
+		if (!targetUser) {
+			const firstUser = await orm(c).select().from(user).where(eq(user.isDel, isDel.NORMAL)).get();
+			if (firstUser) {
+				targetUser = firstUser;
+				targetUserId = firstUser.userId;
+			}
+		}
+
+		if (!targetUser) {
+			throw new BizError('系统未初始化或无可用用户账号');
+		}
+
+		// 3. Check if account already exists
+		const existAccount = await accountService.selectByEmailIncludeDel(c, email);
+		if (existAccount) {
+			if (existAccount.isDel === isDel.DELETE) {
+				await orm(c).update(account).set({ isDel: isDel.NORMAL, userId: targetUserId }).where(eq(account.accountId, existAccount.accountId)).run();
+				return { accountId: existAccount.accountId, email, userId: targetUserId, targetUserEmail: targetUser.email, restored: true };
+			}
+			return { accountId: existAccount.accountId, email, userId: existAccount.userId, targetUserEmail: targetUser.email, exists: true };
+		}
+
+		// 4. Insert into account table
+		const newAccount = await orm(c).insert(account).values({
+			email: email,
+			name: emailUtils.getName(email),
+			userId: targetUserId,
+			status: 0,
+			allReceive: 0
+		}).returning().get();
+
+		return {
+			accountId: newAccount.accountId,
+			email: newAccount.email,
+			userId: targetUserId,
+			targetUserEmail: targetUser.email
+		};
 	}
 
 }
 
-export default publicService
+export default publicService;

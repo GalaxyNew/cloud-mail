@@ -62,6 +62,9 @@ const settingService = {
 
 		setting.emailPrefixFilter = setting.emailPrefixFilter.split(",").filter(Boolean);
 
+		const kvTarget = await c.env.kv.get('generator_target_user_id');
+		setting.generatorTargetUserId = kvTarget ? Number(kvTarget) : 0;
+
 		c.set?.('setting', setting);
 		return setting;
 	},
@@ -111,6 +114,11 @@ const settingService = {
 	},
 
 	async set(c, params) {
+		if (params.generatorTargetUserId !== undefined) {
+			await c.env.kv.put('generator_target_user_id', String(params.generatorTargetUserId));
+			delete params.generatorTargetUserId;
+		}
+
 		const settingData = await this.query(c);
 		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
 		Object.keys(resendTokens).forEach(domain => {
@@ -226,6 +234,7 @@ const settingService = {
 			googleClientId: settingRow.googleClientId,
 			googleSwitch: settingRow.googleSwitch,
 			minEmailPrefix: settingRow.minEmailPrefix,
+			generatorTargetUserId: settingRow.generatorTargetUserId || 0,
 			projectLink: settingRow.projectLink
 		};
 	},
