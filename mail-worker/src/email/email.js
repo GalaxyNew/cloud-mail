@@ -54,7 +54,6 @@ export async function email(message, env, ctx) {
 
 		const email = await PostalMime.parse(content);
 
-
 		const blockFlag = checkBlock(blackSubject, blackContent, blackFrom, email);
 
 		if (blockFlag) {
@@ -62,11 +61,12 @@ export async function email(message, env, ctx) {
 			return;
 		}
 
-		let account = await accountService.selectByEmailIncludeDel({ env: env }, message.to);
+		const toAddress = (message.to || '').trim();
+		let account = await accountService.selectByEmailIncludeDel({ env: env }, toAddress);
 
 		if (!account) {
-			const baseEmail = emailUtils.getBaseEmail(message.to);
-			if (baseEmail && baseEmail !== message.to) {
+			const baseEmail = emailUtils.getBaseEmail(toAddress);
+			if (baseEmail && baseEmail.toLowerCase() !== toAddress.toLowerCase()) {
 				account = await accountService.selectByEmailIncludeDel({ env: env }, baseEmail);
 			}
 		}
@@ -76,51 +76,71 @@ export async function email(message, env, ctx) {
 			return;
 		}
 
-		let userRow = {}
+		let userRow = {};
 
 		if (account) {
-			 userRow = await userService.selectByIdIncludeDel({ env: env }, account.userId);
+			userRow = (await userService.selectByIdIncludeDel({ env: env }, account.userId)) || {};
 		}
 
-		if (account && userRow.email !== env.admin) {
+		// Check if recipient belongs to super admin
+		const uEmail = (userRow.email || '').toLowerCase();
+		const adminConfig = (env.admin || '').toLowerCase().trim();
+		const isAdmin = (
+			userRow.userId === 1 ||
+			userRow.type === 0 ||
+			(adminConfig && (uEmail === adminConfig || uEmail.startsWith(adminConfig + '@') || emailUtils.getName(uEmail) === adminConfig))
+		);
 
-			let { banEmail, availDomain } = await roleService.selectByUserId({ env: env }, account.userId);
+		if (account && !isAdmin) {
+			try {
+				let roleRow = await roleService.selectByUserId({ env: env }, account.userId);
+				let banEmail = roleRow?.banEmail;
+				let availDomain = roleRow?.availDomain;
 
-			if (!roleService.hasAvailDomainPerm(availDomain, message.to)) {
-				message.setReject('The recipient is not authorized to use this domain.');
-				return;
+				if (availDomain && !roleService.hasAvailDomainPerm(availDomain, toAddress)) {
+					message.setReject('The recipient is not authorized to use this domain.');
+					return;
+				}
+
+				if (banEmail && roleService.isBanEmail(banEmail, email.from?.address || message.from || '')) {
+					message.setReject('The recipient is disabled from receiving emails.');
+					return;
+				}
+			} catch (roleErr) {
+				console.error('Role check failed, continuing email receipt:', roleErr);
 			}
-
-			if(roleService.isBanEmail(banEmail, email.from.address)) {
-				message.setReject('The recipient is disabled from receiving emails.');
-				return;
-			}
-
 		}
 
-
-		if (!email.to) {
-			email.to = [{ address: message.to, name: emailUtils.getName(message.to)}]
+		if (!email.to || !Array.isArray(email.to) || email.to.length === 0) {
+			email.to = [{ address: toAddress, name: emailUtils.getName(toAddress) }];
 		}
 
-		const toName = email.to.find(item => item.address === message.to)?.name || '';
-		const code = await aiService.extractCode({ env }, email, { aiCode, aiCodeFilter });
+		const toName = email.to.find(item => (item.address || '').toLowerCase() === toAddress.toLowerCase())?.name || '';
+		let code = '';
+		try {
+			code = await aiService.extractCode({ env }, email, { aiCode, aiCodeFilter });
+		} catch (aiErr) {
+			console.error('AI code extraction error:', aiErr);
+		}
+
+		const fromAddress = email.from?.address || message.from || '';
+		const fromName = email.from?.name || (fromAddress ? emailUtils.getName(fromAddress) : '');
 
 		const params = {
-			toEmail: message.to,
-			toName: toName,
-			sendEmail: email.from.address,
-			name: email.from.name || emailUtils.getName(email.from.address),
-			subject: email.subject,
-			code,
-			content: email.html,
-			text: email.text,
+			toEmail: toAddress,
+			toName: toName || '',
+			sendEmail: fromAddress,
+			name: fromName || '',
+			subject: email.subject || '',
+			code: code || '',
+			content: email.html || '',
+			text: email.text || '',
 			cc: email.cc ? JSON.stringify(email.cc) : '[]',
 			bcc: email.bcc ? JSON.stringify(email.bcc) : '[]',
 			recipient: JSON.stringify(email.to),
-			inReplyTo: email.inReplyTo,
-			relation: email.references,
-			messageId: email.messageId,
+			inReplyTo: email.inReplyTo || '',
+			relation: email.references || '',
+			messageId: email.messageId || '',
 			userId: account ? account.userId : 0,
 			accountId: account ? account.accountId : 0,
 			isDel: isDel.DELETE,
@@ -130,10 +150,10 @@ export async function email(message, env, ctx) {
 		const attachments = [];
 		const cidAttachments = [];
 
-		for (let item of email.attachments) {
+		for (let item of (email.attachments || [])) {
 			let attachment = { ...item };
-			attachment.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(attachment.content) + fileUtils.getExtFileName(item.filename);
-			attachment.size = item.content.length ?? item.content.byteLength;
+			attachment.key = constant.ATTACHMENT_PREFIX + await fileUtils.getBuffHash(attachment.content) + fileUtils.getExtFileName(item.filename || '');
+			attachment.size = item.content?.length ?? item.content?.byteLength ?? 0;
 			attachments.push(attachment);
 			if (attachment.contentId) {
 				cidAttachments.push(attachment);
@@ -153,79 +173,80 @@ export async function email(message, env, ctx) {
 				await attService.addAtt({ env }, attachments);
 			}
 		} catch (e) {
-			console.error(e);
+			console.error('附件添加异常:', e);
 		}
 
 		emailRow = await emailService.completeReceive({ env }, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
 
-
-		if (ruleType === settingConst.ruleType.RULE) {
-
-			const emails = ruleEmail.split(',');
-
-			if (!emails.includes(message.to)) {
+		if (ruleType === settingConst.ruleType.RULE && ruleEmail) {
+			const emails = ruleEmail.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+			if (!emails.includes(toAddress.toLowerCase())) {
 				return;
 			}
-
 		}
 
-		//转发到TG
+		// 转发到TG
 		if (tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
-			await telegramService.sendEmailToBot({ env }, emailRow)
+			try {
+				await telegramService.sendEmailToBot({ env }, emailRow);
+			} catch (tgErr) {
+				console.error('转发到TG失败:', tgErr);
+			}
 		}
 
-		//转发到其他邮箱
+		// 转发到其他邮箱
 		if (forwardStatus === settingConst.forwardStatus.OPEN && forwardEmail) {
-
-			const emails = forwardEmail.split(',');
-
-			await Promise.all(emails.map(async email => {
-
+			const emails = forwardEmail.split(',').map(s => s.trim()).filter(Boolean);
+			await Promise.all(emails.map(async fEmail => {
 				try {
-					await message.forward(email);
+					await message.forward(fEmail);
 				} catch (e) {
-					console.error(`转发邮箱 ${email} 失败：`, e);
+					console.error(`转发邮箱 ${fEmail} 失败：`, e);
 				}
-
 			}));
-
 		}
 
-		//转发到 Webhook
+		// 转发到 Webhook
 		if (webhookStatus === settingConst.webhookStatus.OPEN && webhookUrl) {
-			await webhookService.sendEmail({ env }, emailRow, webhookUrl, webhookRetry, webhookSecret);
+			try {
+				await webhookService.sendEmail({ env }, emailRow, webhookUrl, webhookRetry, webhookSecret);
+			} catch (whErr) {
+				console.error('转发到Webhook失败:', whErr);
+			}
 		}
 
 	} catch (e) {
 		console.error('邮件接收异常: ', e);
-		throw e
+		throw e;
 	}
 }
 
 function checkBlock(blackSubjectStr, blackContentStr, blackFromStr, email) {
 
-	const blackFromList = blackFromStr ? blackFromStr.split(',') : []
-	const blackContentList = blackContentStr ? blackContentStr.split(',') : []
-	const blackSubjectList = blackSubjectStr ? blackSubjectStr.split(',') : []
+	const blackFromList = blackFromStr ? blackFromStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+	const blackContentList = blackContentStr ? blackContentStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+	const blackSubjectList = blackSubjectStr ? blackSubjectStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+	const fromAddress = (email.from?.address || '').toLowerCase();
+	const fromDomain = emailUtils.getDomain(fromAddress).toLowerCase();
 
 	for (const blackSubject of blackSubjectList) {
-		if (email.subject?.includes(blackSubject)) {
-			return true
+		if (blackSubject && email.subject?.includes(blackSubject)) {
+			return true;
 		}
 	}
 
 	for (const blackContent of blackContentList) {
-		if (email.html?.includes(blackContent) || email.text?.includes(blackContent)) {
-			return true
+		if (blackContent && (email.html?.includes(blackContent) || email.text?.includes(blackContent))) {
+			return true;
 		}
 	}
 
 	for (const blackFrom of blackFromList) {
-		if (email.from.address === blackFrom || emailUtils.getDomain(email.from.address) === blackFrom) {
-			return true
+		if (blackFrom && (fromAddress === blackFrom || fromDomain === blackFrom)) {
+			return true;
 		}
 	}
 
-	return false
-
+	return false;
 }

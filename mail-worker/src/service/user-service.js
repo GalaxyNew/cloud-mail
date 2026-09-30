@@ -31,10 +31,18 @@ const userService = {
 			throw new BizError(t('authExpired'), 401);
 		}
 
+		const uEmail = (userRow.email || '').toLowerCase().trim();
+		const adminConfig = (c.env.admin || '').toLowerCase().trim();
+		const isAdmin = (
+			userRow.userId === 1 ||
+			userRow.type === 0 ||
+			(adminConfig && (uEmail === adminConfig || uEmail.startsWith(adminConfig + '@') || emailUtils.getName(uEmail) === adminConfig))
+		);
+
 		const [account, roleRow, permKeys] = await Promise.all([
 			accountService.selectByEmailIncludeDel(c, userRow.email),
 			roleService.selectById(c, userRow.type),
-			userRow.email === c.env.admin ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
+			isAdmin ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
 		]);
 
 		const user = {};
@@ -42,13 +50,13 @@ const userService = {
 		user.sendCount = userRow.sendCount;
 		user.email = userRow.email;
 		user.account = account;
-		user.name = account.name;
+		user.name = account ? account.name : emailUtils.getName(userRow.email);
 		user.permKeys = permKeys;
 		user.role = roleRow;
 		user.type = userRow.type;
 
-		if (c.env.admin === userRow.email) {
-			user.role = constant.ADMIN_ROLE
+		if (isAdmin) {
+			user.role = constant.ADMIN_ROLE;
 			user.type = 0;
 		}
 
@@ -67,12 +75,21 @@ const userService = {
 		await orm(c).update(user).set({ password: hash, salt: salt }).where(eq(user.userId, userId)).run();
 	},
 
-	selectByEmail(c, email) {
-		return orm(c).select().from(user).where(
+	async selectByEmail(c, email) {
+		if (!email) return null;
+		let row = await orm(c).select().from(user).where(
 			and(
 				sql`${user.email} COLLATE NOCASE = ${email}`,
 				eq(user.isDel, isDel.NORMAL)))
 			.get();
+		if (!row && !email.includes('@')) {
+			row = await orm(c).select().from(user).where(
+				and(
+					sql`${user.email} LIKE ${email + '@%'}`,
+					eq(user.isDel, isDel.NORMAL)))
+				.get();
+		}
+		return row;
 	},
 
 	async insert(c, params) {
@@ -225,7 +242,7 @@ const userService = {
 				sendAction.hasPerm = false;
 			}
 
-			if (user.email === c.env.admin) {
+			if (user.email === c.env.admin || user.userId === 1 || user.type === 0) {
 				sendAction.sendType = constant.ADMIN_ROLE.sendType;
 				sendAction.sendCount = constant.ADMIN_ROLE.sendCount;
 				sendAction.hasPerm = true;

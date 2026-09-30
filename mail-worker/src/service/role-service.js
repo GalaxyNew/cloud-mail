@@ -150,25 +150,27 @@ const roleService = {
 			.where(and(eq(perm.permKey, permKey), eq(role.sendType, sendType))).all();
 	},
 
-	selectByUserId(c, userId) {
-		return orm(c).select(role).from(user).leftJoin(role, eq(role.roleId, user.type)).where(eq(user.userId, userId)).get();
+	async selectByUserId(c, userId) {
+		const res = await orm(c).select({ ...role }).from(user).leftJoin(role, eq(role.roleId, user.type)).where(eq(user.userId, userId)).get();
+		return res || {};
 	},
 
 	hasAvailDomainPerm(availDomain, email) {
-
-		availDomain = availDomain.split(',').filter(item => item !== '');
-
-		if (availDomain.length === 0) {
-			return true
+		if (!availDomain) {
+			return true;
 		}
 
-		const availIndex = availDomain.findIndex(item => {
-			const domain = emailUtils.getDomain(email.toLowerCase());
-			const availDomainItem = item.toLowerCase();
-			return domain === availDomainItem
-		})
+		const availDomainList = String(availDomain).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
-		return availIndex > -1
+		if (availDomainList.length === 0) {
+			return true;
+		}
+
+		const domain = emailUtils.getDomain((email || '').toLowerCase());
+		return availDomainList.some(item => {
+			const availItem = item.startsWith('@') ? item.slice(1) : item;
+			return domain === availItem;
+		});
 	},
 
 	selectByName(c, roleName) {
@@ -186,34 +188,34 @@ const roleService = {
 	},
 
 	isBanEmail(banEmail, fromEmail) {
+		if (!banEmail || !fromEmail) {
+			return false;
+		}
 
-		banEmail = banEmail.split(',').filter(item => item !== '');
+		const banEmailList = String(banEmail).split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
 
-		if (banEmail.includes('*')) {
+		if (banEmailList.length === 0) {
+			return false;
+		}
+
+		if (banEmailList.includes('*')) {
 			return true;
 		}
 
-		for (const item of banEmail) {
+		const fromLower = fromEmail.toLowerCase();
+		const receiveDomain = emailUtils.getDomain(fromLower);
 
+		for (const item of banEmailList) {
 			if (verifyUtils.isDomain(item)) {
-
-				const banDomain = item.toLowerCase();
-				const receiveDomain = emailUtils.getDomain(fromEmail.toLowerCase());
-
+				const banDomain = item.startsWith('@') ? item.slice(1) : item;
 				if (banDomain === receiveDomain) {
 					return true;
 				}
-
 			} else {
-
-				if (item.toLowerCase() === fromEmail.toLowerCase()) {
-
+				if (item === fromLower) {
 					return true;
-
 				}
-
 			}
-
 		}
 
 		return false;
