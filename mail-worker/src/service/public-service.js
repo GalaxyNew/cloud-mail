@@ -18,6 +18,8 @@ import userService from './user-service';
 import accountService from './account-service';
 import settingService from './setting-service';
 import KvConst from '../const/kv-const';
+import jwtUtils from '../utils/jwt-utils';
+import constant from '../const/constant';
 
 const publicService = {
 
@@ -204,14 +206,31 @@ const publicService = {
 			throw new BizError(t('notEmail'));
 		}
 
+		// 0. Check if request carries logged-in user JWT token
+		let tokenUserId = 0;
+		const jwt = c.req.header(constant.TOKEN_HEADER);
+		if (jwt) {
+			try {
+				const tokenRes = await jwtUtils.verifyToken(c, jwt);
+				if (tokenRes && tokenRes.userId) {
+					tokenUserId = Number(tokenRes.userId);
+				}
+			} catch (e) {
+				// ignore invalid/expired token
+			}
+		}
+
 		// 1. Get generatorTargetUserId from KV/setting
 		const settingRow = await settingService.query(c);
 		let targetUserId = 0;
 		const kvTarget = await c.env.kv.get('generator_target_user_id');
-		if (kvTarget) {
+		if (kvTarget && Number(kvTarget) > 0) {
 			targetUserId = Number(kvTarget);
-		} else if (settingRow.generatorTargetUserId) {
+		} else if (settingRow.generatorTargetUserId && Number(settingRow.generatorTargetUserId) > 0) {
 			targetUserId = Number(settingRow.generatorTargetUserId);
+		} else if (tokenUserId > 0) {
+			// If not explicitly configured in settings, use the currently logged-in user!
+			targetUserId = tokenUserId;
 		}
 
 		// 2. Resolve target user

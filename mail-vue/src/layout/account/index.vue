@@ -90,11 +90,18 @@
       </div>
 
     </el-scrollbar>
-    <el-dialog v-model="showAdd" :title="$t('addAccount')">
+    <el-dialog
+        v-model="showAdd"
+        :title="$t('addAccount')"
+        append-to-body
+        align-center
+        class="add-account-dialog"
+        width="480px"
+    >
       <div class="container">
         <el-input v-model="addForm.email" ref="addRef" type="text" :placeholder="$t('emailAccount')" autocomplete="off" @keyup.enter="submit">
           <template #append>
-            <div @click.stop="openSelect">
+            <div @click.stop="openSelect" class="suffix-select-box">
               <el-select
                   ref="mySelect"
                   v-model="addForm.suffix"
@@ -108,7 +115,7 @@
                     :value="item"
                 />
               </el-select>
-              <div>
+              <div class="suffix-content">
                 <span>{{ addForm.suffix }}</span>
                 <Icon class="setting-icon" icon="mingcute:down-small-fill" width="20" height="20"/>
               </div>
@@ -129,7 +136,14 @@
         <span style="font-size: 12px;color: #F56C6C" v-if="botJsError">{{ $t('verifyModuleFailed') }}</span>
       </div>
     </el-dialog>
-    <el-dialog v-model="setNameShow" :title="$t('changeUserName')">
+    <el-dialog
+        v-model="setNameShow"
+        :title="$t('changeUserName')"
+        append-to-body
+        align-center
+        class="add-account-dialog set-name-dialog"
+        width="420px"
+    >
       <div class="container">
         <el-input v-model="accountName" type="text" :placeholder="$t('username')" autocomplete="off" @keyup.enter="setName">
         </el-input>
@@ -577,6 +591,90 @@ function submit() {
 <style>
 path[fill="#ffdda1"] {
   fill: #ffdd7d;
+}
+
+/* 全屏完全居中、加宽一倍的添加邮箱弹窗样式 */
+.add-account-dialog.el-dialog {
+  width: 480px !important;
+  max-width: calc(100vw - 32px) !important;
+  border-radius: 14px !important;
+  margin: 0 auto !important;
+  overflow: hidden;
+}
+
+.add-account-dialog .el-dialog__header {
+  padding: 18px 24px 14px 24px !important;
+  margin-right: 0 !important;
+}
+
+.add-account-dialog .el-dialog__title {
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+}
+
+.add-account-dialog .el-dialog__body {
+  padding: 20px 24px 24px 24px !important;
+}
+
+.add-account-dialog .container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.add-account-dialog .el-input {
+  width: 100%;
+  height: 42px;
+}
+
+.add-account-dialog .el-input__wrapper {
+  padding-left: 12px;
+  font-size: 14px;
+}
+
+.add-account-dialog .suffix-select-box {
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.add-account-dialog .suffix-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+
+.add-account-dialog .btn {
+  width: 100% !important;
+  height: 42px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  margin-top: 6px !important;
+}
+
+/* 科幻暗黑主题样式 */
+.dark .add-account-dialog.el-dialog {
+  background: #091024 !important;
+  border: 1px solid rgba(0, 242, 254, 0.4) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 242, 254, 0.25) !important;
+}
+
+.dark .add-account-dialog .el-dialog__header {
+  border-bottom: 1px solid rgba(0, 242, 254, 0.15);
+}
+
+.dark .add-account-dialog .el-dialog__title {
+  color: #00f2fe !important;
+}
+
+.dark .add-account-dialog .el-input-group__append {
+  background: rgba(14, 23, 42, 0.9) !important;
+  border-color: rgba(0, 242, 254, 0.3) !important;
+  color: #00f2fe !important;
 }
 </style>
 <style scoped lang="scss">
