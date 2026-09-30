@@ -222,21 +222,33 @@ function submitPwd() {
   }
 
   .title {
-    font-size: 18px;
-    font-weight: bold;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: #00f2fe;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
   }
 
   .container {
     font-size: 14px;
     display: grid;
     gap: 20px;
-    margin-bottom: 40px;
+    margin-bottom: 30px;
+    background: rgba(11, 19, 38, 0.75);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    border-radius: 10px;
+    padding: 24px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 
     .item {
       display: grid;
-      grid-template-columns: 50px 1fr;
-      gap: 140px;
+      grid-template-columns: 80px 1fr;
+      gap: 120px;
       position: relative;
+      align-items: center;
+
       .user-name {
         display: grid;
         grid-template-columns: auto 1fr;
@@ -244,6 +256,7 @@ function submitPwd() {
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
+          color: #f1f5f9;
         }
       }
 
@@ -256,23 +269,29 @@ function submitPwd() {
       }
 
       .edit-name {
-        color: #4dabff;
-        padding-left: 10px;
+        color: #00f2fe;
+        padding-left: 12px;
         cursor: pointer;
+        font-weight: 600;
+        &:hover {
+          text-decoration: underline;
+        }
       }
 
       @media (max-width: 767px) {
-        gap: 70px;
+        gap: 40px;
       }
 
       div:first-child {
         font-weight: bold;
+        color: #94a3b8;
       }
 
       div:last-child {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
+        color: #f1f5f9;
       }
     }
   }
@@ -280,11 +299,16 @@ function submitPwd() {
   .language {
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    margin-bottom: 40px;
+    gap: 14px;
+    margin-bottom: 30px;
+    background: rgba(11, 19, 38, 0.75);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    border-radius: 10px;
+    padding: 24px;
+    backdrop-filter: blur(14px);
 
     .language-select {
-      width: 100px;
+      width: 140px;
     }
   }
 
@@ -292,7 +316,12 @@ function submitPwd() {
     font-size: 14px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 14px;
+    background: rgba(11, 19, 38, 0.75);
+    border: 1px solid rgba(244, 63, 94, 0.3);
+    border-radius: 10px;
+    padding: 24px;
+    backdrop-filter: blur(14px);
   }
 }
 </style>

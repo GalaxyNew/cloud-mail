@@ -1,11 +1,14 @@
 <template>
   <el-scrollbar class="scroll">
-    <div>
-      <div class="title" >
-        <Icon icon="mdi:email-outline" width="24" height="24" />
-        <div>{{settingStore.settings.title}}</div>
+    <div class="aside-container">
+      <div class="title">
+        <div class="brand-holo-icon">
+          <Icon icon="solar:letter-bold-duotone" width="22" height="22" class="mail-core" />
+        </div>
+        <div class="brand-text">{{settingStore.settings.title || 'CLOUD MAIL'}}</div>
+        <span class="brand-version">EDGE</span>
       </div>
-      <el-menu :collapse="false" text-color="#fff" active-text-color="#fff" style="margin-top: 10px">
+      <el-menu :collapse="false" :text-color="uiStore.dark ? '#cbd5e1' : '#606266'" :active-text-color="uiStore.dark ? '#00f2fe' : '#1890ff'" style="margin-top: 10px">
         <el-menu-item @click="router.push({name: 'email'})" index="email"
                       :class="route.meta.name === 'email' ? 'choose-item' : ''">
           <Icon icon="hugeicons:mailbox-01" width="20" height="20" />
@@ -32,14 +35,14 @@
           <span class="menu-name" style="margin-left: 16px">{{$t('settings')}}</span>
         </el-menu-item>
         <div class="manage-title" v-perm="['all-email:query','user:query','role:query','setting:query','analysis:query','reg-key:query']">
-          <div>{{$t('manage')}}</div>
+          <span class="matrix-tag">// MATRIX_MANAGEMENT</span>
         </div>
         <el-menu-item @click="router.push({name: 'analysis'})" index="analysis" v-perm="'analysis:query'"
                       :class="route.meta.name === 'analysis' ? 'choose-item' : ''">
-          <Icon icon="fluent:data-pie-20-regular" width="24" height="24" />
-          <span class="menu-name" style="margin-left: 13px">{{$t('analytics')}}</span>
+          <Icon icon="fluent:data-pie-20-regular" width="22" height="22" />
+          <span class="menu-name" style="margin-left: 14px">{{$t('analytics')}}</span>
         </el-menu-item>
-        <el-menu-item @click="router.push({name: 'user'})" index="setting" v-perm="'user:query'"
+        <el-menu-item @click="router.push({name: 'user'})" index="user" v-perm="'user:query'"
                       :class="route.meta.name === 'user' ? 'choose-item' : ''">
           <Icon icon="si:user-alt-2-line" width="20" height="20" />
           <span class="menu-name" style="margin-left: 16px">{{$t('allUsers')}}</span>
@@ -49,7 +52,7 @@
           <Icon icon="fluent:mail-list-28-regular" width="22" height="22" />
           <span class="menu-name" style="margin-left: 15px">{{$t('allMail')}}</span>
         </el-menu-item>
-        <el-menu-item @click="router.push({name: 'role'})" index="setting" v-perm="'role:query'"
+        <el-menu-item @click="router.push({name: 'role'})" index="role" v-perm="'role:query'"
                       :class="route.meta.name === 'role' ? 'choose-item' : ''">
           <Icon icon="fluent:lock-closed-16-regular" width="22" height="22" />
           <span class="menu-name" style="margin-left: 15px">{{$t('permissions')}}</span>
@@ -74,75 +77,160 @@ import router from "@/router/index.js";
 import { useRoute } from "vue-router";
 import {Icon} from "@iconify/vue";
 import {useSettingStore} from "@/store/setting.js";
+import {useUiStore} from "@/store/ui.js";
 
 const settingStore = useSettingStore();
+const uiStore = useUiStore();
 const route = useRoute();
-
 </script>
 
 <style lang="scss" scoped>
+.aside-container {
+  padding-bottom: 20px;
+}
 
 .title {
-  margin: 15px 10px;
-  height: 45px;
-  border-radius: 6px;
+  margin: 16px 12px;
+  height: 48px;
+  border-radius: 8px;
   display: flex;
   position: relative;
-  font-size: 16px;
-  font-weight: bold;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
+  gap: 10px;
   color: #ffffff;
-  background: linear-gradient(135deg, #1890ff, #3a80dd);
+  background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(121, 40, 202, 0.2) 100%);
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  box-shadow: 0 0 16px rgba(0, 242, 254, 0.15), inset 0 0 10px rgba(0, 242, 254, 0.05);
   transition: all 0.3s ease;
   max-width: 240px;
-  padding: 0 10px;
-  > div {
+  padding: 0 12px;
+
+  .brand-holo-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    background: rgba(0, 242, 254, 0.2);
+    border: 1px solid rgba(0, 242, 254, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+
+    .mail-core {
+      color: #00f2fe;
+    }
+  }
+
+  .brand-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 1px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    max-width: calc(240px - 20px - 30px);
+    background: linear-gradient(90deg, #ffffff, #00f2fe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 
-  :deep(.el-icon) {
-    flex-shrink: 0;
-    font-size: 20px;
+  .brand-version {
+    font-family: 'Rajdhani', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    color: #00ff9d;
+    background: rgba(0, 255, 157, 0.12);
+    border: 1px solid rgba(0, 255, 157, 0.4);
+    border-radius: 3px;
+    padding: 1px 4px;
+    margin-left: auto;
   }
-
-  .user-right-icon {
-    align-self: center;
-    position: absolute;
-    font-size: 12px;
-    right: 8px;
-    color: #ffffff;
-  }
-
 }
 
-
 .manage-title {
-  margin-top: 10px;
-  padding-left: 20px;
-  color: #fff;
+  margin: 18px 12px 6px 16px;
+  display: flex;
+  align-items: center;
+
+  .matrix-tag {
+    font-family: 'Rajdhani', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: rgba(0, 242, 254, 0.6);
+  }
 }
 
 .el-menu-item {
-  margin: 3px 10px !important;
+  margin: 4px 10px !important;
   border-radius: 6px;
-  height: 36px;
-  padding: 10px !important;
+  height: 38px;
+  padding: 0 12px !important;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 242, 254, 0.08) !important;
+    color: #00f2fe !important;
+    border-color: rgba(0, 242, 254, 0.2);
+  }
 }
 
-.choose-item {
-  font-weight: 400;
-  background: var(--aside-menu-active-background) !important;
-  backdrop-filter: blur(4px);
+.dark .choose-item {
+  background: linear-gradient(90deg, rgba(0, 242, 254, 0.18) 0%, rgba(121, 40, 202, 0.12) 100%) !important;
+  color: #00f2fe !important;
+  border-left: 3px solid #00f2fe !important;
+  border-color: rgba(0, 242, 254, 0.3) !important;
+  box-shadow: 0 0 15px rgba(0, 242, 254, 0.12), inset 0 0 10px rgba(0, 242, 254, 0.05);
 }
 
-@media (hover: hover) {
-  .el-menu-item:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
+html:not(.dark) {
+  .title {
+    background: #ffffff !important;
+    border: 1px solid #ebeef5 !important;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  }
+  .brand-holo-icon {
+    background: #e6f7ff !important;
+    border: 1px solid #91d5ff !important;
+    box-shadow: none !important;
+    .mail-core { color: #1890ff !important; }
+  }
+  .brand-text {
+    background: linear-gradient(90deg, #1890ff, #096dd9) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    font-family: inherit !important;
+    font-weight: 700 !important;
+  }
+  .brand-version {
+    color: #1890ff !important;
+    background: #e6f7ff !important;
+    border: 1px solid #91d5ff !important;
+  }
+  .matrix-tag {
+    color: #909399 !important;
+    font-family: inherit !important;
+  }
+  .el-menu-item {
+    font-family: inherit !important;
+    &:hover {
+      background: #f5f7fa !important;
+      color: #1890ff !important;
+      border-color: transparent !important;
+    }
+  }
+  .choose-item {
+    background: #e6f7ff !important;
+    color: #1890ff !important;
+    border-left: 3px solid #1890ff !important;
+    border-color: #91d5ff !important;
+    box-shadow: none !important;
   }
 }
 
@@ -150,30 +238,13 @@ const route = useRoute();
   user-select: none;
 }
 
-
-:deep(.el-scrollbar__wrap--hidden-default ) {
+:deep(.el-scrollbar__wrap--hidden-default) {
   background: var(--aside-backgound) !important;
-}
-
-:deep(.el-menu-item) {
-  background: var(--aside-backgound);
 }
 
 :deep(.el-menu) {
   background: var(--aside-backgound);
-}
-
-.el-menu {
   border-right: 0;
-  width: 260px;
-}
-
-:deep(.el-divider__text) {
-  background: var(--aside-backgound);
-  color: #FFFFFF;
-}
-
-.scroll {
-
+  width: 250px;
 }
 </style>

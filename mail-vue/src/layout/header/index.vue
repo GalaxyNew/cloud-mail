@@ -3,20 +3,33 @@
     <div class="header-btn">
       <hanburger @click="changeAside"></hanburger>
       <span class="breadcrumb-item">{{ $t(route.meta.title) }}</span>
+      <div class="hud-telemetry-badge">
+        <span class="pulse-emerald"></span>
+        <span class="telemetry-label">CF-EDGE // ARMED</span>
+      </div>
     </div>
-    <div v-perm="'email:send'" class="writer-box" @click="openSend">
+    <div v-perm="'email:send'" class="writer-box" @click="openSend" title="COMPOSE / 新建邮件">
       <div class="writer">
-        <Icon icon="material-symbols:edit-outline-sharp" width="22" height="22"/>
+        <Icon icon="solar:pen-new-square-bold" width="20" height="20"/>
       </div>
     </div>
     <div class="toolbar">
-      <div v-if="uiStore.dark" class="sun-icon icon-item" @click="openDark($event)">
-        <Icon icon="mingcute:sun-fill"/>
+      <!-- Dual Style Switcher: Toggle between Original White and New Sci-Fi -->
+      <div 
+        class="theme-mode-switch" 
+        :class="uiStore.dark ? 'is-scifi' : 'is-white'" 
+        @click="openDark($event)"
+        :title="uiStore.dark ? '当前为新版科幻风，点击切换为原版白色风格' : '当前为原版白色风格，点击切换为新版科幻风'"
+      >
+        <div class="switch-inner">
+          <span class="status-indicator"></span>
+          <Icon v-if="uiStore.dark" icon="solar:planet-bold" class="mode-icon" width="16" height="16" />
+          <Icon v-else icon="solar:sun-2-bold" class="mode-icon" width="16" height="16" />
+          <span class="mode-title">{{ uiStore.dark ? '新版科幻风' : '原版白色风' }}</span>
+          <span class="mode-tag">{{ uiStore.dark ? '切原版白' : '切科幻版' }}</span>
+        </div>
       </div>
-      <div v-else class="dark-icon icon-item" @click="openDark($event)">
-        <Icon icon="solar:moon-linear"/>
-      </div>
-      <div class="notice icon-item" @click="openNotice">
+      <div class="notice icon-item" @click="openNotice" title="Broadcast Notice">
         <Icon icon="streamline-plump:announcement-megaphone"/>
       </div>
       <el-dropdown ref="userinfoRef" @visible-change="e => userInfoShow = e" :teleported="false" popper-class="detail-dropdown">
@@ -24,7 +37,7 @@
           <div class="avatar-text">
             <div>{{ formatName(userStore.user.email) }}</div>
           </div>
-          <Icon class="setting-icon" icon="mingcute:down-small-fill" width="24" height="24"/>
+          <Icon class="setting-icon" icon="mingcute:down-small-fill" width="20" height="20"/>
         </div>
         <template #dropdown>
           <div class="user-details">
@@ -34,7 +47,7 @@
             <div class="user-name">
               {{ userStore.user.name }}
             </div>
-            <div class="detail-email" @click="copyEmail(userStore.user.email)">
+            <div class="detail-email" @click="copyEmail(userStore.user.email)" title="Click to copy">
               {{ userStore.user.email }}
             </div>
             <div class="detail-user-type">
@@ -96,11 +109,10 @@ const userInfoShow = ref(false)
 const userinfoRef = ref({})
 
 const accountCount = computed(() => {
-  return userStore.user.role.accountCount
+  return userStore.user?.role?.accountCount || 0
 })
 
 const sendType = computed(() => {
-
   if (settingStore.settings.send === 1) {
     return t('disabled')
   }
@@ -109,180 +121,459 @@ const sendType = computed(() => {
     return t('unauthorized')
   }
 
-  if (userStore.user.role.sendType === 'ban') {
+  if (userStore.user?.role?.sendType === 'ban') {
     return t('sendBanned')
   }
 
-  if (userStore.user.role.sendType === 'internal') {
+  if (userStore.user?.role?.sendType === 'internal') {
     return t('sendInternal')
   }
 
-  if (!userStore.user.role.sendCount) {
+  if (!userStore.user?.role?.sendCount) {
     return t('unlimited')
   }
 
-  if (userStore.user.role.sendType === 'day') {
+  if (userStore.user?.role?.sendType === 'day') {
     return t('daily')
   }
 
-  if (userStore.user.role.sendType === 'count') {
+  if (userStore.user?.role?.sendType === 'count') {
     return t('total')
   }
+  return t('unlimited')
 })
 
 const sendCount = computed(() => {
-
-
   if (!hasPerm('email:send')) {
     return null
   }
 
-  if (userStore.user.role.sendType === 'ban') {
+  if (userStore.user?.role?.sendType === 'ban') {
     return null
   }
 
-  if (userStore.user.role.sendType === 'internal') {
+  if (userStore.user?.role?.sendType === 'internal') {
     return null
   }
 
-  if (!userStore.user.role.sendCount) {
+  if (!userStore.user?.role?.sendCount) {
     return null
   }
 
-  if (settingStore.settings.send === 1) {
-    return null
+  if (userStore.user?.role?.sendType === 'day') {
+    let now = setExtend(new Date())
+    let count = userStore.user?.daySendCountMap?.[now] || 0
+    return (userStore.user.role.sendCount || 0) - count
   }
 
-  return userStore.user.sendCount + '/' + userStore.user.role.sendCount
+  if (userStore.user?.role?.sendType === 'count') {
+    let count = userStore.user?.account?.sendCount || 0
+    return (userStore.user.role.sendCount || 0) - count
+  }
+  return null
 })
 
-function userInfoHide(e) {
-    if (userInfoShow.value) {
-        userinfoRef.value.handleClose()
-    } else {
-        userinfoRef.value.handleOpen()
-    }
-}
-
-async function copyEmail(email) {
-  try {
-    await navigator.clipboard.writeText(email);
-    ElMessage({
-      message: t('copySuccessMsg'),
-      type: 'success',
-      plain: true,
-    })
-  } catch (err) {
-    console.error(`${t('copyFailMsg')}:`, err);
-    ElMessage({
-      message: t('copyFailMsg'),
-      type: 'error',
-      plain: true,
-    })
-  }
-}
-
-function changeLang(lang) {
-  setExtend(lang === 'en' ? 'en' : 'zh-cn')
-  settingStore.lang = lang
-}
-
 function openNotice() {
-  uiStore.showNotice()
+  uiStore.noticeShow = true
 }
 
-function openDark(e) {
-
-  const nextIsDark = !uiStore.dark
-  const root = document.documentElement
-
-  if (!document.startViewTransition) {
-    switchDark(nextIsDark, root);
-    return
-  }
-
-  const x = e.clientX
-  const y = e.clientY
-
-  const maxX = Math.max(x, window.innerWidth - x)
-  const maxY = Math.max(y, window.innerHeight - y)
-  const endRadius = Math.hypot(maxX, maxY)
-
-  // 标记切换目标，供 CSS 选择器使用
-  root.setAttribute('data-theme-to', nextIsDark ? 'dark' : 'light')
-  root.style.setProperty('--vt-x', `${x}px`)
-  root.style.setProperty('--vt-y', `${y}px`)
-  root.style.setProperty('--vt-end-radius', `${endRadius + 10}px`)
-
-  const transition = document.startViewTransition(() => {
-    switchDark(nextIsDark, root);
-  })
-
-  transition.finished.finally(() => {
-    // 清理标记
-    root.removeAttribute('data-theme-to')
-  })
-}
-
-function switchDark(nextIsDark, root) {
-  root.setAttribute('class', nextIsDark ? 'dark' : '')
-  const metaTag = document.getElementById('theme-color-meta');
-  const isMobile =  !window.matchMedia("(pointer: fine) and (hover: hover)").matches;
-  metaTag.setAttribute('content', nextIsDark ? (isMobile ? '#141414' : '#000000') : (isMobile ? '#191A23' : '#F1F1F1'));
-  uiStore.dark = nextIsDark
-}
-
-function openSend() {
-  uiStore.writerRef.open()
+function openDark(event) {
+  uiStore.toggleDarkWithTransition(event)
 }
 
 function changeAside() {
   uiStore.asideShow = !uiStore.asideShow
 }
 
+function openSend() {
+  uiStore.writerRef.openSend()
+}
+
+function userInfoHide() {
+  if (userInfoShow.value) {
+    userinfoRef.value.handleClose()
+  } else {
+    userinfoRef.value.handleOpen()
+  }
+}
+
+function copyEmail(email) {
+  navigator.clipboard.writeText(email).then(() => {
+    ElMessage({
+      message: t('copySuccess'),
+      type: 'success',
+      plain: true,
+    })
+  })
+}
+
 function clickLogout() {
   logoutLoading.value = true
   logout().then(() => {
-    localStorage.removeItem("token")
-    router.replace('/login')
+    localStorage.removeItem('token')
+    sessionStorage.removeItem('oauthProvider')
+    router.replace({name: 'login'})
   }).finally(() => {
     logoutLoading.value = false
   })
 }
 
 function formatName(email) {
-  return email[0]?.toUpperCase() || ''
+  return email ? email[0]?.toUpperCase() : 'U'
 }
-
 </script>
+
 <style>
 .detail-dropdown {
   color: var(--el-text-color-primary) !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 </style>
-<style lang="scss" scoped>
 
-:deep(.el-popper.is-pure) {
-  border-radius: 6px;
+<style lang="scss" scoped>
+.header {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  position: relative;
 }
 
+.header-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.breadcrumb-item {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: 1px;
+  color: #ffffff;
+  text-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+}
+
+.hud-telemetry-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(0, 255, 157, 0.08);
+  border: 1px solid rgba(0, 255, 157, 0.25);
+  font-family: 'Rajdhani', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #00ff9d;
+  letter-spacing: 0.8px;
+
+  .pulse-emerald {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #00ff9d;
+    box-shadow: 0 0 6px #00ff9d;
+    animation: pulseDot 1.8s infinite;
+  }
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+.writer-box {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin: 0 10px;
+
+  .writer {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%);
+    border: 1px solid #00f2fe;
+    box-shadow: 0 0 16px rgba(0, 198, 255, 0.45);
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      box-shadow: 0 0 25px rgba(0, 242, 254, 0.8);
+      transform: translateY(-1px) scale(1.05);
+    }
+  }
+}
+
+/* Theme Mode Switch */
+.theme-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  margin-right: 4px;
+
+  .switch-inner {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  &.is-scifi {
+    background: rgba(0, 242, 254, 0.08);
+    border: 1px solid rgba(0, 242, 254, 0.4);
+    color: #00f2fe;
+    box-shadow: 0 0 12px rgba(0, 242, 254, 0.15);
+
+    &:hover {
+      background: rgba(0, 242, 254, 0.18);
+      box-shadow: 0 0 18px rgba(0, 242, 254, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .status-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00f2fe;
+      box-shadow: 0 0 8px #00f2fe;
+      animation: pulseCyan 2s infinite;
+    }
+
+    .mode-title {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .mode-tag {
+      background: rgba(0, 242, 254, 0.15);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      color: #7dd3fc;
+      margin-left: 2px;
+    }
+  }
+
+  &.is-white {
+    background: #f0f5ff;
+    border: 1px solid #adc6ff;
+    color: #1d39c4;
+    box-shadow: 0 2px 6px rgba(24, 144, 255, 0.12);
+
+    &:hover {
+      background: #e6f7ff;
+      border-color: #1890ff;
+      box-shadow: 0 2px 10px rgba(24, 144, 255, 0.22);
+      transform: translateY(-1px);
+    }
+
+    .status-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #fa8c16;
+      box-shadow: 0 0 6px rgba(250, 140, 22, 0.5);
+    }
+
+    .mode-title {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .mode-tag {
+      background: #bae7ff;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 10px;
+      color: #0958d9;
+      margin-left: 2px;
+    }
+  }
+}
+
+@keyframes pulseCyan {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Light theme overrides for header */
+html:not(.dark) {
+  .header {
+    background: #ffffff;
+    border-bottom: 1px solid #ebeef5;
+  }
+  .breadcrumb-item {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #303133;
+    text-shadow: none;
+  }
+  .hud-telemetry-badge {
+    background: #f6ffed;
+    border-color: #b7eb8f;
+    color: #52c41a;
+    .pulse-emerald {
+      background: #52c41a;
+      box-shadow: 0 0 4px #52c41a;
+    }
+  }
+  .writer-box .writer {
+    background: linear-gradient(135deg, #1890ff, #3a80dd);
+    border: none;
+    box-shadow: 0 2px 8px rgba(24, 144, 255, 0.35);
+  }
+  .toolbar .icon-item {
+    background: #f0f2f5;
+    border: 1px solid #e4e7ed;
+    color: #606266;
+    &:hover {
+      background: #e6f7ff;
+      color: #1890ff;
+      border-color: #91d5ff;
+      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15);
+    }
+  }
+  .toolbar .avatar .avatar-text {
+    background: #e6f7ff;
+    color: #1890ff;
+    border-color: #91d5ff;
+    box-shadow: none;
+    font-family: -apple-system, sans-serif;
+  }
+  .user-details {
+    background: #ffffff !important;
+    border: 1px solid #ebeef5 !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+    color: #303133 !important;
+    .user-name { color: #303133 !important; }
+    .details-avatar {
+      background: #f0f2f5 !important;
+      color: #1890ff !important;
+      border-color: #d9d9d9 !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .icon-item {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    color: #00f2fe;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 242, 254, 0.15);
+      border-color: #00f2fe;
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.35);
+      transform: translateY(-1px);
+    }
+  }
+
+  .avatar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+
+    .avatar-text {
+      background: rgba(0, 242, 254, 0.15);
+      color: #00f2fe;
+      height: 34px;
+      width: 34px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 242, 254, 0.5);
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.25);
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+    }
+
+    .setting-icon {
+      color: #94a3b8;
+    }
+  }
+}
+
+/* User Details Dropdown */
 .user-details {
-  width: 250px;
-  font-size: 14px;
-  display: grid;
-  grid-template-columns: 1fr;
-  justify-items: center;
+  width: 270px;
+  background: #091024 !important;
+  border: 1px solid rgba(0, 242, 254, 0.35);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 25px rgba(0, 242, 254, 0.2);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  .details-avatar {
+    width: 48px;
+    height: 48px;
+    background: rgba(0, 242, 254, 0.15);
+    color: #00f2fe;
+    border: 1px solid rgba(0, 242, 254, 0.6);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.35);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+  }
 
   .user-name {
-    font-weight: bold;
+    font-weight: 700;
+    font-size: 15px;
+    color: #ffffff;
     margin-top: 10px;
-    padding-left: 20px;
-    padding-right: 20px;
-    width: 250px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    text-align: center;
+    letter-spacing: 0.5px;
+  }
+
+  .detail-email {
+    font-size: 12px;
+    color: #00f2fe;
+    cursor: pointer;
+    margin-top: 4px;
+    font-family: 'Rajdhani', monospace;
+    letter-spacing: 0.5px;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 
   .detail-user-type {
@@ -291,189 +582,27 @@ function formatName(email) {
 
   .action-info {
     width: 100%;
-    display: grid;
-    grid-template-columns: auto auto;
-    margin-top: 10px;
-
-    > div:first-child {
-      display: grid;
-      align-items: center;
-      gap: 10px;
-    }
-
-    > div:last-child {
-      display: grid;
-      gap: 10px;
-      text-align: center;
-
-      > div {
-        display: flex;
-        align-items: center;
-      }
-    }
-  }
-
-  .detail-email {
-    padding-left: 20px;
-    padding-right: 20px;
-    width: 250px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    text-align: center;
-    color: var(--regular-text-color);
-    cursor: pointer;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #94a3b8;
   }
 
   .logout {
-    margin-top: 20px;
+    margin-top: 18px;
     width: 100%;
-    padding-left: 10px;
-    padding-right: 10px;
-    padding-bottom: 10px;
 
     .el-button {
-      border-radius: 6px;
-      height: 28px;
       width: 100%;
+      height: 34px;
+      border-radius: 6px;
+      font-family: 'Rajdhani', sans-serif;
+      font-weight: 700;
+      letter-spacing: 1px;
     }
   }
-
-  .details-avatar {
-    margin-top: 20px;
-    height: 40px;
-    width: 40px;
-    background: var(--el-bg-color);
-    color: var(--el-text-color-primary);
-    border: 1px solid var(--dark-border);
-    font-size: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-  }
-}
-
-
-.header {
-  text-align: right;
-  font-size: 12px;
-  display: grid;
-  height: 100%;
-  gap: 10px;
-  grid-template-columns: auto auto 1fr;
-}
-
-.header.not-send {
-  grid-template-columns: auto 1fr;
-}
-
-.writer-box {
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: 5px;
-
-  .writer {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    color: #ffffff;
-    background: linear-gradient(135deg, #1890ff, #3a80dd);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    .writer-text {
-      margin-left: 15px;
-      font-size: 14px;
-      font-weight: bold;;
-    }
-  }
-}
-
-.header-btn {
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-  min-width: 0;
-}
-
-.breadcrumb-item {
-  font-weight: bold;
-  font-size: 14px;
-  color: var(--el-text-color-primary);
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: end;
-  gap: 15px;
-  @media (max-width: 767px) {
-    gap: 10px;
-  }
-
-  .icon-item {
-    align-self: center;
-    width: 30px;
-    height: 30px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-  }
-
-  .icon-item:hover {
-    background: var(--base-fill);
-  }
-
-  .notice {
-    font-size: 22px;
-    margin-right: 4px;
-  }
-
-  .dark-icon {
-    font-size: 20px;
-  }
-
-  .sun-icon {
-    font-size: 24px;
-  }
-
-  .avatar {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-
-    .avatar-text {
-      background: var(--el-bg-color);
-      color: var(--el-text-color-primary);
-      height: 30px;
-      width: 30px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border-radius: 8px;
-      border: 1px solid var(--dark-border);
-    }
-
-    .setting-icon {
-      position: relative;
-      top: 0;
-      margin-right: 10px;
-      bottom: 10px;
-    }
-  }
-
-}
-
-.el-tooltip__trigger:first-child:focus-visible {
-  outline: unset;
 }
 </style>

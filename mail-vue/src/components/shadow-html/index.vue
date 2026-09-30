@@ -6,6 +6,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { useUiStore } from "@/store/ui.js"
 
 const props = defineProps({
   html: {
@@ -14,6 +15,7 @@ const props = defineProps({
   }
 })
 
+const uiStore = useUiStore()
 const container = ref(null)
 const contentBox = ref(null)
 let shadowRoot = null
@@ -21,32 +23,31 @@ let shadowRoot = null
 function updateContent() {
   if (!shadowRoot) return;
 
-  // 1. 提取 <body> 的 style 属性（如果存在）
   const bodyStyleRegex = /<body[^>]*style="([^"]*)"[^>]*>/i;
   const bodyStyleMatch = props.html.match(bodyStyleRegex);
   const bodyStyle = bodyStyleMatch ? bodyStyleMatch[1] : '';
 
-  // 2. 移除 <body> 标签（保留内容）
   const cleanedHtml = props.html.replace(/<\/?body[^>]*>/gi, '');
 
-  // 3. 将 body 的 style 应用到 .shadow-content
-  shadowRoot.innerHTML = `
-    <style>
+  const isDark = uiStore.dark;
+  const themeCss = isDark ? `
       :host {
         all: initial;
         width: 100%;
         height: 100%;
-        font-family: Inter, 'Helvetica Neue', Helvetica, 'PingFang SC',
-                    'Hiragino Sans GB', 'Microsoft YaHei', '微软雅黑', Arial, sans-serif;
-        font-size: 14px;
-        line-height: 1.5;
-        color: #13181D;
+        font-family: 'Rajdhani', Inter, 'Helvetica Neue', Arial, sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+        color: #cbd5e1;
         word-break: break-word;
       }
 
       h1, h2, h3, h4 {
-          font-size: 18px;
-          font-weight: 700;
+        font-family: 'Orbitron', 'Rajdhani', sans-serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: #00f2fe;
+        letter-spacing: 0.5px;
       }
 
       p {
@@ -55,16 +56,68 @@ function updateContent() {
 
       a {
         text-decoration: none;
-        color: #0E70DF;
+        color: #00f2fe;
+        text-shadow: 0 0 8px rgba(0, 242, 254, 0.3);
+      }
+
+      .shadow-content {
+        background: rgba(9, 16, 36, 0.85);
+        color: #cbd5e1;
+        width: fit-content;
+        height: fit-content;
+        min-width: 100%;
+        border-radius: 8px;
+        padding: 20px 24px;
+        box-sizing: border-box;
+        border: 1px solid rgba(0, 242, 254, 0.25);
+        box-shadow: 0 0 30px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 242, 254, 0.05);
+        ${bodyStyle ? bodyStyle : ''}
+      }
+  ` : `
+      :host {
+        all: initial;
+        width: 100%;
+        height: 100%;
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        color: #13181D;
+        word-break: break-word;
+      }
+
+      h1, h2, h3, h4 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1f2937;
+      }
+
+      p {
+        margin: 0;
+      }
+
+      a {
+        text-decoration: none;
+        color: #1890ff;
       }
 
       .shadow-content {
         background: #FFFFFF;
+        color: #13181D;
         width: fit-content;
         height: fit-content;
         min-width: 100%;
-        ${bodyStyle ? bodyStyle : ''} /* 注入 body 的 style */
+        border-radius: 8px;
+        padding: 18px 24px;
+        box-sizing: border-box;
+        border: 1px solid #ebeef5;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        ${bodyStyle ? bodyStyle : ''}
       }
+  `;
+
+  shadowRoot.innerHTML = `
+    <style>
+      ${themeCss}
 
       img:not(table img) {
         max-width: 100%;
@@ -103,7 +156,7 @@ onMounted(() => {
   autoScale()
 })
 
-watch(() => props.html, () => {
+watch(() => [props.html, uiStore.dark], () => {
   updateContent()
   autoScale()
 })

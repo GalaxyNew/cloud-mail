@@ -1,25 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&display=swap');
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     -webkit-tap-highlight-color: transparent;
     scrollbar-width: thin;
-    scrollbar-color: var(--dark-border) transparent;
+}
+
+.dark * {
+    scrollbar-color: rgba(0, 242, 254, 0.3) rgba(6, 8, 20, 0.8);
+}
+
+html:not(.dark) * {
+    scrollbar-color: #c5c7ce #f1f2f5;
 }
 
 html, body {
     width: 100%;
     height: 100%;
+    background-color: var(--el-bg-color-page);
+    color: var(--el-text-color-primary);
 }
 
 #app {
     width: 100%;
     height: 100%;
+    background-color: var(--el-bg-color-page);
+    color: var(--el-text-color-primary);
 }
 
 :deep(.el-input__inner:focus) {
     background-color: transparent !important;
-    border-color: #dcdfe6 !important;
+    border-color: #00f2fe !important;
 }
 
 .el-table thead th {
@@ -27,14 +40,11 @@ html, body {
 }
 
 body {
-    font-family: Inter, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+    font-family: 'Rajdhani', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
     line-height: 1.5;
     color: var(--el-text-color-primary);
     font-size: 14px;
-}
-
-html, body {
-    background: var(--el-bg-color);
+    letter-spacing: 0.3px;
 }
 
 ul, ol {
@@ -59,8 +69,13 @@ button, input, select, textarea {
     outline: none;
 }
 
-.el-message {
+.dark .el-message {
     white-space: nowrap !important;
+    background: #091024 !important;
+    border: 1px solid rgba(0, 242, 254, 0.4) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 242, 254, 0.25) !important;
+    border-radius: 8px !important;
+    color: #e2e8f0 !important;
 }
 
 .message-bottom {
@@ -105,39 +120,54 @@ button, input, select, textarea {
     max-height: 220px !important;
 }
 
+/* ================= Original White Theme CSS Variables (:root) ================= */
 :root {
     --el-color-primary: #1890ff;
-    --el-color-primary-dark-2: #1064c0;
-    --el-color-primary-light-3: #4dabff;
+    --el-color-primary-dark-2: #096dd9;
+    --el-color-primary-light-3: #40a9ff;
     --el-color-primary-light-5: #69c0ff;
     --el-color-primary-light-7: #91d5ff;
+    --el-color-primary-light-8: #bae7ff;
     --el-color-primary-light-9: #e6f7ff;
 
-    --extra-light-fill: #FAFCFF;
-    --settings-page-background: #fafbfc;
-    --light-ill: #F5F7FA;
+    --el-bg-color: #FFFFFF;
+    --el-bg-color-page: #F2F3F5;
+    --el-bg-color-overlay: #FFFFFF;
+
+    --el-text-color-primary: #303133;
+    --el-text-color-regular: #606266;
+    --el-text-color-secondary: #909399;
+    --el-text-color-placeholder: #A8ABB2;
+
+    --el-border-color: #DCDFE6;
+    --el-border-color-light: #E4E7ED;
+    --el-border-color-lighter: #EBEEF5;
+    --el-border-color-extra-light: #F2F6FC;
+
+    --extra-light-fill: #FAFAFA;
+    --settings-page-background: #F0F2F5;
+    --light-ill: #F0F2F5;
     --light-border: #E4E7ED;
-    --header-actions-border: inset 0 -1px 0 0 var(--el-border-color-lighter);
-    --aside-backgound: #191A23;
-    --aside-menu-active-background: #27282D;
-    --loadding-background: rgba(255, 255, 255, 0.8);
-    --dark-border: #CDD0D6;
+    --header-actions-border: inset 0 -1px 0 0 #EBEEF5;
+    --aside-backgound: #FFFFFF;
+    --aside-menu-active-background: #E6F7FF;
+    --loadding-background: rgba(255, 255, 255, 0.9);
+    --dark-border: #DCDFE6;
     --base-fill: #F0F2F5;
-    --regular-text-color: #585d69;
-    --light-border-color: #e7e9ec;
-    --aside-right-border: 3px 0 5px rgba(0, 21, 41, .35);
-    --choose-account-background: var(--el-color-primary-light-8);
-    --el-text-color-regular: var(--el-text-color-primary);
-    --email-scroll-content-color: rgba(25, 41, 59, 0.4);
-    --email-hover-background: #F2F6FC;
-    --email-right-click-background: #FDF6EC;
-    --login-border: none;
-    --form-desc-color: #71717a;
-    --login-switch-color: #006be6;
-    --scrollbar-track-color: #A8ABB2;
+    --regular-text-color: #606266;
+    --light-border-color: #E4E7ED;
+    --aside-right-border: 1px solid #EBEEF5;
+    --choose-account-background: #E6F7FF;
+    --email-scroll-content-color: rgba(0, 0, 0, 0.45);
+    --email-hover-background: #F5F7FA;
+    --email-right-click-background: #F0F2F5;
+    --login-border: 1px solid #DCDFE6;
+    --form-desc-color: #909399;
+    --login-switch-color: #1890ff;
+    --scrollbar-track-color: #DCDFE6;
     --base-border-color: #DCDFE6;
     --secondary-text-color: #909399;
-    --message-block-color: rgba(0, 0, 0, 0);
+    --message-block-color: rgba(0, 0, 0, 0.04);
     --loading-hide-transition: all 200ms;
     --vt-x: 50%;
     --vt-y: 50%;
@@ -146,62 +176,174 @@ button, input, select, textarea {
 }
 
 .dark {
-    --extra-light-fill: #191919;
-    --settings-page-background: var(--extra-light-fill);
-    --light-ill: #262727;
-    --light-border: #414243;
-    --aside-backgound: #141414;
-    --aside-menu-active-background: rgba(255, 255, 255, 0.08);
-    --header-actions-border: inset 0 -1px 0 0 var(--el-border-color-lighter);
-    --loadding-background: rgba(0, 0, 0, 0.3);
-    --dark-border: #636466;
-    --base-fill: #303030;
-    --regular-text-color: #bfbdbc;
-    --light-border-color: #414243;
-    --aside-right-border: 3px 0 5px #0A0A0A;
-    --choose-account-background: #39393A;
-    --email-scroll-content-color: rgba(255, 255, 255, 0.3);
-    --email-hover-background: #1D1E1F;
-    --email-right-click-background: var(--email-hover-background);
-    --login-border: none;
-    --form-desc-color: #8D9095;
-    --login-switch-color: rgb(102, 177, 255);
-    --scrollbar-track-color: #8D9095;
-    --base-border-color: #4C4D4F;
-    --secondary-text-color: #A3A6AD;
-    --message-block-color: rgba(30, 30, 30, 0.2);
-    --el-border-color: #414243 !important;
+    --el-bg-color: #060814;
+    --el-bg-color-page: #03050c;
+    --el-bg-color-overlay: #091024;
+    --extra-light-fill: #0a1126;
+    --settings-page-background: #060918;
+    --light-ill: #0c142c;
+    --light-border: rgba(0, 242, 254, 0.2);
+    --aside-backgound: #070b1a;
+    --aside-menu-active-background: linear-gradient(90deg, rgba(0, 242, 254, 0.2) 0%, rgba(121, 40, 202, 0.12) 100%);
+    --header-actions-border: inset 0 -1px 0 0 rgba(0, 242, 254, 0.2);
+    --loadding-background: rgba(6, 8, 20, 0.85);
+    --dark-border: rgba(0, 242, 254, 0.3);
+    --base-fill: #0b1226;
+    --regular-text-color: #cbd5e1;
+    --light-border-color: rgba(0, 242, 254, 0.18);
+    --aside-right-border: 1px 0 15px rgba(0, 242, 254, 0.15);
+    --choose-account-background: rgba(0, 242, 254, 0.12);
+    --email-scroll-content-color: rgba(148, 163, 184, 0.7);
+    --email-hover-background: rgba(0, 242, 254, 0.08);
+    --email-right-click-background: rgba(0, 242, 254, 0.15);
+    --login-border: rgba(0, 242, 254, 0.25);
+    --form-desc-color: #94a3b8;
+    --login-switch-color: #00f2fe;
+    --scrollbar-track-color: rgba(0, 242, 254, 0.3);
+    --base-border-color: rgba(0, 242, 254, 0.2);
+    --secondary-text-color: #94a3b8;
+    --message-block-color: rgba(0, 242, 254, 0.06);
+    --el-border-color: rgba(0, 242, 254, 0.22) !important;
 }
 
-.el-input {
-    --el-input-text-color: var(--el-text-color-primary) !important;
+/* ================= Element Plus Sci-Fi Enhancements (Scoped to .dark) ================= */
+.dark .el-button--primary {
+    background: linear-gradient(135deg, #00c6ff 0%, #0072ff 100%) !important;
+    border-color: #00f2fe !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 16px rgba(0, 198, 255, 0.35) !important;
+    transition: all 0.25s ease !important;
 }
 
-/* 视图过渡，基于径向剪裁 */
-html.dark,
-html:not(.dark) {
+.dark .el-button--primary:hover {
+    box-shadow: 0 0 25px rgba(0, 242, 254, 0.6) !important;
+    transform: translateY(-1px) !important;
+    background: linear-gradient(135deg, #00f2fe 0%, #0052d4 100%) !important;
+}
+
+.dark .el-card {
+    background: rgba(10, 16, 36, 0.8) !important;
+    border: 1px solid rgba(0, 242, 254, 0.2) !important;
+    color: #e2e8f0 !important;
+    backdrop-filter: blur(14px) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5) !important;
+}
+
+.dark .el-dialog {
+    background: #091024 !important;
+    border: 1px solid rgba(0, 242, 254, 0.35) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 242, 254, 0.2) !important;
+    color: #e2e8f0 !important;
+
+    .el-dialog__title {
+        color: #00f2fe !important;
+        font-family: 'Orbitron', sans-serif !important;
+        font-size: 16px !important;
+        letter-spacing: 1px !important;
+    }
+
+    .el-dialog__headerbtn .el-dialog__close {
+        color: #94a3b8 !important;
+        &:hover {
+            color: #00f2fe !important;
+        }
+    }
+}
+
+.dark .el-dropdown-menu {
+    background: #091024 !important;
+    border: 1px solid rgba(0, 242, 254, 0.3) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 242, 254, 0.2) !important;
+
+    .el-dropdown-menu__item {
+        color: #cbd5e1 !important;
+        &:hover {
+            background: rgba(0, 242, 254, 0.15) !important;
+            color: #00f2fe !important;
+        }
+    }
+}
+
+.dark .el-tag {
+    background: rgba(0, 242, 254, 0.1) !important;
+    border: 1px solid rgba(0, 242, 254, 0.3) !important;
+    color: #00f2fe !important;
+    font-family: 'Rajdhani', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+}
+
+.dark .el-table {
+    background-color: transparent !important;
+    color: #e2e8f0 !important;
+    --el-table-header-bg-color: rgba(11, 19, 38, 0.95) !important;
+    --el-table-tr-bg-color: transparent !important;
+    --el-table-border-color: rgba(0, 242, 254, 0.12) !important;
+    --el-table-row-hover-bg-color: rgba(0, 242, 254, 0.08) !important;
+
+    th.el-table__cell {
+        background-color: rgba(11, 19, 38, 0.95) !important;
+        color: #00f2fe !important;
+        border-bottom: 1px solid rgba(0, 242, 254, 0.2) !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-size: 13px !important;
+        letter-spacing: 0.5px !important;
+    }
+
+    td.el-table__cell {
+        border-bottom: 1px solid rgba(0, 242, 254, 0.08) !important;
+    }
+}
+
+.dark .el-checkbox {
+    --el-checkbox-checked-bg-color: #00f2fe !important;
+    --el-checkbox-checked-input-border-color: #00f2fe !important;
+    --el-checkbox-input-border: rgba(0, 242, 254, 0.4) !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+    background: #060814;
+}
+.dark ::-webkit-scrollbar-thumb {
+    background: rgba(0, 242, 254, 0.3);
+    border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 242, 254, 0.6);
+    box-shadow: 0 0 8px #00f2fe;
+}
+html:not(.dark) ::-webkit-scrollbar-track {
+    background: #f1f2f5;
+}
+html:not(.dark) ::-webkit-scrollbar-thumb {
+    background: #c5c7ce;
+    border-radius: 3px;
+}
+
+/* View transitions with smooth radial wave */
+html.dark, html:not(.dark) {
     view-transition-name: root;
 }
-
-::view-transition-old(root),
-::view-transition-new(root) {
+::view-transition-old(root), ::view-transition-new(root) {
     animation: none;
     mix-blend-mode: normal;
 }
-
-/* 层级控制，确保对应方向动画在上层可见 */
 html[data-theme-to="dark"]::view-transition-new(root) { z-index: 2; }
 html[data-theme-to="dark"]::view-transition-old(root) { z-index: 1; }
 html[data-theme-to="light"]::view-transition-old(root) { z-index: 2; }
 html[data-theme-to="light"]::view-transition-new(root) { z-index: 1; }
 
-/* 切到暗色：新视图从点击点向外扩散 */
 html[data-theme-to="dark"]::view-transition-new(root) {
     clip-path: circle(0px at var(--vt-x) var(--vt-y));
     animation: vt-radial-in var(--vt-duration) var(--vt-easing) forwards;
 }
-
-/* 切到浅色：旧视图向点击点收缩 */
 html[data-theme-to="light"]::view-transition-old(root) {
     clip-path: circle(var(--vt-end-radius, 0px) at var(--vt-x) var(--vt-y));
     animation: vt-radial-out var(--vt-duration) var(--vt-easing) forwards;
@@ -211,7 +353,6 @@ html[data-theme-to="light"]::view-transition-old(root) {
     from { clip-path: circle(0px at var(--vt-x) var(--vt-y)); }
     to   { clip-path: circle(var(--vt-end-radius, 0px) at var(--vt-x) var(--vt-y)); }
 }
-
 @keyframes vt-radial-out {
     from { clip-path: circle(var(--vt-end-radius, 0px) at var(--vt-x) var(--vt-y)); }
     to   { clip-path: circle(0px at var(--vt-x) var(--vt-y)); }

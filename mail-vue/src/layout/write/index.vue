@@ -626,15 +626,19 @@ function close() {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(6, 8, 20, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
 
   .write-box {
-    background: var(--el-bg-color);
+    background: rgba(9, 14, 30, 0.92);
     width: min(1367px, calc(100% - 80px));
-    box-shadow: var(--el-box-shadow-light);
-    border: 1px solid var(--el-border-color-light);
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.9), 0 0 35px rgba(0, 242, 254, 0.2);
+    border: 1px solid rgba(0, 242, 254, 0.35);
+    backdrop-filter: blur(24px);
     transition: var(--el-transition-duration);
-    padding: 15px;
-    border-radius: 8px;
+    padding: 18px 20px;
+    border-radius: 12px;
     display: grid;
     grid-template-rows: auto 1fr;
     overflow: hidden;
@@ -653,38 +657,52 @@ function close() {
     .title {
       display: flex;
       justify-content: space-between;
-      margin-bottom: 10px;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(0, 242, 254, 0.15);
 
       .title-left {
         align-items: center;
-        display: grid;
-        grid-template-columns: auto auto auto 1fr;
+        display: flex;
+        gap: 8px;
+        color: #f1f5f9;
+        font-family: 'Rajdhani', sans-serif;
       }
 
       .title-text {
+        color: #00f2fe;
+        filter: drop-shadow(0 0 8px #00f2fe);
       }
 
       .sender {
-        margin-left: 8px;
+        color: #94a3b8;
+        font-weight: 600;
+        font-size: 13px;
       }
 
       .sender-name {
-        margin-left: 8px;
-        font-weight: bold;
+        font-weight: 700;
+        color: #f1f5f9;
       }
 
       .send-email {
-        color: #999896;
-        margin-left: 5px;
+        color: #00f2fe;
+        font-family: monospace;
+        font-size: 13px;
         white-space: nowrap;
         text-overflow: ellipsis;
         overflow: hidden;
       }
 
-
       div {
         display: flex;
         align-items: center;
+        color: #94a3b8;
+        transition: all 0.2s ease;
+        &:hover {
+          color: #00f2fe;
+        }
       }
     }
 
@@ -695,27 +713,44 @@ function close() {
       gap: 15px;
 
       .item-title {
+        color: #00f2fe;
+        font-weight: 700;
+        font-size: 13px;
       }
 
       .button-item {
         display: grid;
         grid-template-columns: auto auto 1fr auto;
+        align-items: center;
+        padding-top: 8px;
+        border-top: 1px solid rgba(0, 242, 254, 0.12);
 
         .att-add {
           cursor: pointer;
+          color: #00f2fe;
+          transition: all 0.2s;
+          &:hover {
+            filter: drop-shadow(0 0 6px #00f2fe);
+            transform: scale(1.1);
+          }
         }
 
         .att-clear {
           cursor: pointer;
-          margin-left: 10px;
+          margin-left: 12px;
+          color: #94a3b8;
+          transition: all 0.2s;
+          &:hover {
+            color: #f43f5e;
+          }
         }
 
         .att-list {
           display: grid;
-          gap: 5px;
+          gap: 6px;
           grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-          padding-left: 10px;
-          padding-right: 10px;
+          padding-left: 14px;
+          padding-right: 14px;
           max-height: 110px;
           overflow-y: auto;
           @media (max-width: 450px) {
@@ -725,23 +760,30 @@ function close() {
           .att-item {
             display: grid;
             grid-template-columns: auto 1fr auto auto;
-            gap: 5px;
+            gap: 6px;
             height: 32px;
-            font-size: 14px;
-            padding: 4px 5px;
-            background: var(--light-ill);
+            font-size: 13px;
+            padding: 4px 8px;
+            background: rgba(0, 242, 254, 0.08);
+            border: 1px solid rgba(0, 242, 254, 0.2);
             border-radius: 4px;
+            color: #cbd5e1;
+            align-items: center;
+
             .att-filename {
               white-space: nowrap;
               text-overflow: ellipsis;
               overflow: hidden;
+            }
+            .att-size {
+              color: #64748b;
+              font-size: 11px;
             }
           }
         }
       }
     }
   }
-
 }
 
 .email-row {

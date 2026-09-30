@@ -272,12 +272,16 @@ const handleDelete = () => {
 }
 
 .header-actions {
-  padding: 9px 15px 8px;
+  padding: 8px 18px;
   display: flex;
   align-items: center;
   gap: 20px;
-  box-shadow: var(--header-actions-border);
+  background: rgba(9, 14, 30, 0.75);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 242, 254, 0.16);
   font-size: 18px;
+  color: #00f2fe;
+
   .star {
     display: flex;
     align-items: center;
@@ -286,9 +290,14 @@ const handleDelete = () => {
   }
   .icon {
     cursor: pointer;
+    color: #94a3b8;
+    transition: all 0.2s ease;
+    &:hover {
+      color: #00f2fe;
+      filter: drop-shadow(0 0 6px #00f2fe);
+    }
   }
 }
-
 
 .scrollbar {
   height: calc(100% - 38px);
@@ -297,18 +306,19 @@ const handleDelete = () => {
 
 .container {
   font-size: 14px;
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-top: 10px;
+  padding: 16px 24px;
   @media (max-width: 1023px) {
-    padding-left: 15px;
-    padding-right: 15px;
+    padding: 12px 16px;
   }
 
   .email-title {
+    font-family: 'Orbitron', sans-serif;
     font-size: 20px;
-    font-weight: bold;
-    margin-bottom: 10px;
+    font-weight: 700;
+    color: #ffffff;
+    margin-bottom: 14px;
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
   }
 
   .htm-scrollbar {
@@ -321,9 +331,10 @@ const handleDelete = () => {
     .att {
       margin-top: 30px;
       margin-bottom: 30px;
-      border: 1px solid var(--light-border-color);
-      padding: 14px;
-      border-radius: 6px;
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      background: rgba(11, 19, 38, 0.6);
+      padding: 16px;
+      border-radius: 8px;
       width: fit-content;
       .att-box {
         min-width: min(410px,calc(100vw - 60px));

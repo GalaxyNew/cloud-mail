@@ -1,12 +1,27 @@
 <template>
   <div class="account-box">
     <div class="head-opt">
-      <Icon v-perm="'account:add'" class="icon add" icon="ion:add-outline" width="23" height="23" @click="add"/>
-      <Icon class="icon refresh" icon="ion:reload" width="18" height="18" @click="refresh"/>
+      <div class="opt-left">
+        <Icon v-perm="'account:add'" class="icon add" icon="ion:add-outline" width="22" height="22" @click="add"/>
+        <Icon class="icon refresh" icon="ion:reload" width="17" height="17" @click="refresh"/>
+      </div>
+      <div class="search-wrap">
+        <el-input
+            v-model="searchKey"
+            class="account-search-input"
+            size="small"
+            :placeholder="$t('searchEmail')"
+            clearable
+        >
+          <template #prefix>
+            <Icon icon="ion:search-outline" width="14" height="14" class="search-icon"/>
+          </template>
+        </el-input>
+      </div>
     </div>
     <el-scrollbar class="scrollbar" ref="scrollbarRef">
       <div v-infinite-scroll="getAccountList" :infinite-scroll-distance="600" :infinite-scroll-immediate="false">
-        <el-card class="item" :class="itemBg(item.accountId)" v-for="(item, index) in accounts" :key="item.accountId"
+        <el-card class="item" :class="itemBg(item.accountId)" v-for="(item, index) in displayAccounts" :key="item.accountId"
                  @click="changeAccount(item)">
           <div class="account">
             {{ item.email }}
@@ -66,11 +81,11 @@
           </el-skeleton>
         </template>
 
-        <div class="noLoading" v-if="noLoading && accounts.length > 0">
+        <div class="noLoading" v-if="noLoading && displayAccounts.length > 0 && !searchKey">
           <div>{{ $t('noMoreData') }}</div>
         </div>
-        <div class="empty" v-if="noLoading && accounts.length === 0">
-          <el-empty :description="$t('noMessagesFound')"/>
+        <div class="empty" v-if="(noLoading && accounts.length === 0) || (searchKey && displayAccounts.length === 0)">
+          <el-empty :image-size="70" :description="$t('noMessagesFound')"/>
         </div>
       </div>
 
@@ -155,6 +170,19 @@ const showAdd = ref(false)
 const addLoading = ref(false);
 const domainList = computed(() => settingStore.domainList)
 const accounts = reactive([])
+const searchKey = ref(new URLSearchParams(window.location.search).get('accountSearch') || '')
+
+const displayAccounts = computed(() => {
+  if (!searchKey.value || !searchKey.value.trim()) {
+    return accounts
+  }
+  const q = searchKey.value.trim().toLowerCase()
+  return accounts.filter(item => {
+    const emailMatch = item.email && item.email.toLowerCase().includes(q)
+    const nameMatch = item.name && item.name.toLowerCase().includes(q)
+    return emailMatch || nameMatch
+  })
+})
 const noLoading = ref(false)
 const loading = ref(false)
 const followLoading = ref(false);
@@ -521,34 +549,70 @@ path[fill="#ffdda1"] {
 </style>
 <style scoped lang="scss">
 .account-box {
-
-  border-right: 1px solid var(--el-border-color) !important;
-  background-color: var(--el-bg-color);
   height: 100%;
   overflow: hidden;
+  transition: all 0.3s ease;
 
   .head-opt {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     height: 38px;
-    box-shadow: var(--header-actions-border);
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 6px;
+    transition: all 0.3s ease;
+
+    .opt-left {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
 
     .icon {
       cursor: pointer;
+      transition: all 0.2s ease;
     }
 
     .refresh {
-      margin-left: 10px;
+      margin-left: 0;
     }
 
     .add {
-      margin-left: 2px;
+      margin-left: 0;
     }
 
-    .head-opt:not(.add) .refresh {
-      margin-left: 5px;
+    .search-wrap {
+      flex: 1;
+      min-width: 0;
+
+      .account-search-input {
+        width: 100%;
+
+        :deep(.el-input__wrapper) {
+          border-radius: 6px;
+          height: 26px;
+          line-height: 26px;
+          padding: 0 6px;
+          box-shadow: none;
+          transition: all 0.2s ease;
+        }
+
+        :deep(.el-input__inner) {
+          height: 26px;
+          font-size: 12px;
+        }
+
+        :deep(.el-input__prefix) {
+          margin-right: 4px;
+        }
+
+        .search-icon {
+          display: flex;
+          align-items: center;
+        }
+      }
     }
   }
 
@@ -572,7 +636,8 @@ path[fill="#ffdda1"] {
       justify-content: center;
       align-items: center;
       padding: 10px 0;
-      color: var(--secondary-text-color);
+      font-size: 12px;
+      letter-spacing: 0.5px;
     }
   }
 
@@ -582,28 +647,27 @@ path[fill="#ffdda1"] {
   }
 
   .item {
-    background-color: var(--el-bg-color);
     border-radius: 8px;
-    padding: 10px;
+    padding: 10px 12px;
     margin-bottom: 11px;
     margin-left: 10px;
     margin-right: 10px;
     cursor: pointer;
+    transition: all 0.25s ease;
 
     .account {
-      font-weight: 400;
-      font-size: 15px;
-      margin-bottom: 20px;
+      font-size: 14px;
+      margin-bottom: 16px;
       overflow: hidden;
       white-space: nowrap;
       text-overflow: ellipsis;
+      letter-spacing: 0.5px;
     }
 
     .opt {
       display: flex;
       justify-content: space-between;
       font-size: 12px;
-      color: #888;
 
       .settings {
         display: flex;
@@ -626,11 +690,177 @@ path[fill="#ffdda1"] {
     margin-top: 10px;
   }
 
-  .item-choose {
-    background: var(--choose-account-background);
+  /* Dark Sci-Fi Mode */
+  .dark & {
+    border-right: 1px solid rgba(0, 242, 254, 0.18) !important;
+    background: rgba(7, 11, 26, 0.85);
+    backdrop-filter: blur(16px);
+
+    .head-opt {
+      border-bottom: 1px solid rgba(0, 242, 254, 0.15);
+      .icon {
+        color: #00f2fe;
+        &:hover {
+          filter: drop-shadow(0 0 8px #00f2fe);
+          transform: scale(1.1);
+        }
+      }
+
+      .account-search-input {
+        :deep(.el-input__wrapper) {
+          background: rgba(11, 19, 38, 0.85);
+          border: 1px solid rgba(0, 242, 254, 0.25);
+          color: #e2e8f0;
+
+          &.is-focus, &:hover {
+            border-color: #00f2fe;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.25) !important;
+          }
+        }
+
+        :deep(.el-input__inner) {
+          color: #e2e8f0;
+          font-family: 'Rajdhani', monospace;
+          letter-spacing: 0.5px;
+          &::placeholder {
+            color: rgba(148, 163, 184, 0.6);
+            font-family: inherit;
+          }
+        }
+
+        .search-icon {
+          color: #00f2fe;
+        }
+      }
+    }
+
+    .scrollbar {
+      .empty, .noLoading {
+        color: #64748b;
+      }
+    }
+
+    .item {
+      background: rgba(11, 19, 38, 0.85);
+      border: 1px solid rgba(0, 242, 254, 0.15);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+
+      &:hover {
+        border-color: rgba(0, 242, 254, 0.4);
+        box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+        transform: translateY(-1px);
+      }
+
+      .account {
+        font-family: 'Rajdhani', monospace;
+        font-weight: 700;
+        color: #f1f5f9;
+      }
+
+      .opt {
+        color: #94a3b8;
+      }
+    }
+
+    .item-choose {
+      background: linear-gradient(135deg, rgba(0, 242, 254, 0.15) 0%, rgba(121, 40, 202, 0.15) 100%) !important;
+      border: 1px solid #00f2fe !important;
+      box-shadow: 0 0 18px rgba(0, 242, 254, 0.25), inset 0 0 10px rgba(0, 242, 254, 0.05) !important;
+
+      .account {
+        color: #00f2fe !important;
+        text-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+      }
+    }
+  }
+
+  /* Original White Mode */
+  html:not(.dark) & {
+    border-right: 1px solid #ebeef5 !important;
+    background: #ffffff !important;
+    backdrop-filter: none;
+
+    .head-opt {
+      border-bottom: 1px solid #ebeef5;
+      .icon {
+        color: #606266;
+        &:hover {
+          color: #1890ff;
+          filter: none;
+          transform: scale(1.08);
+        }
+      }
+
+      .account-search-input {
+        :deep(.el-input__wrapper) {
+          background: #f5f7fa;
+          border: 1px solid #e4e7ed;
+          color: #303133;
+
+          &.is-focus, &:hover {
+            border-color: #1890ff;
+            background: #ffffff;
+            box-shadow: 0 0 0 1px #1890ff !important;
+          }
+        }
+
+        :deep(.el-input__inner) {
+          color: #303133;
+          font-family: inherit;
+          &::placeholder {
+            color: #a8abb2;
+          }
+        }
+
+        .search-icon {
+          color: #909399;
+        }
+      }
+    }
+
+    .scrollbar {
+      .empty, .noLoading {
+        color: #909399;
+      }
+    }
+
+    .item {
+      background: #ffffff !important;
+      border: 1px solid #ebeef5 !important;
+      color: #303133 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+
+      &:hover {
+        border-color: #d9d9d9 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
+      }
+
+      .account {
+        color: #303133 !important;
+        font-family: inherit !important;
+        font-weight: 500;
+        text-shadow: none !important;
+      }
+
+      .opt {
+        color: #909399;
+      }
+    }
+
+    .item-choose {
+      background: #e6f7ff !important;
+      border: 1px solid #91d5ff !important;
+      box-shadow: 0 2px 8px rgba(24, 144, 255, 0.15) !important;
+
+      .account {
+        color: #1890ff !important;
+        text-shadow: none !important;
+        font-weight: 700;
+        font-family: inherit !important;
+      }
+    }
   }
 }
-
 
 .setting-icon {
   position: relative;
@@ -640,11 +870,17 @@ path[fill="#ffdda1"] {
 :deep(.el-input-group__append) {
   padding: 0 !important;
   padding-left: 8px !important;
-  background: var(--el-bg-color);
+  background: var(--base-fill);
+  border: 1px solid var(--base-border-color);
 }
 
-:deep(.el-dialog) {
+.dark :deep(.el-dialog) {
   width: 400px !important;
+  background: #091024 !important;
+  border: 1px solid rgba(0, 242, 254, 0.4) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 242, 254, 0.2) !important;
+
   @media (max-width: 440px) {
     width: calc(100% - 40px) !important;
     margin-right: 20px !important;
@@ -662,7 +898,7 @@ path[fill="#ffdda1"] {
 
 :deep(.el-pagination .el-select) {
   width: 100px;
-  background: var(--el-bg-color);
+  background: #091024;
 }
 
 .add-email-turnstile {
