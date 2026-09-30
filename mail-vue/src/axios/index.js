@@ -34,7 +34,10 @@ http.interceptors.response.use((res) => {
                     repeatNum: -4,
                 })
                 localStorage.removeItem('token')
-                router.replace('/login')
+                const currentPath = router.currentRoute?.value?.path
+                if (currentPath !== '/generator' && !res.config?.skipAuthRedirect) {
+                    router.replace('/login')
+                }
                 reject(data)
             } else if (data.code === 403) {
                 ElMessage({

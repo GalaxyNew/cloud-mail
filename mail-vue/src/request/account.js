@@ -25,5 +25,5 @@ export function accountSetAsTop(accountId) {
 }
 
 export function generatorCreate(email) {
-    return http.post('/public/generator/create', { email });
+    return http.post('/public/generator/create', { email }, { skipAuthRedirect: true });
 }

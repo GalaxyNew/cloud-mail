@@ -205,7 +205,7 @@ import { useRouter } from 'vue-router';
 import { Icon } from '@iconify/vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { useUiStore } from '@/store/ui.js';
-import { accountAdd, generatorCreate } from '@/request/account.js';
+import { generatorCreate } from '@/request/account.js';
 
 const router = useRouter();
 const uiStore = useUiStore();
@@ -317,13 +317,14 @@ async function handleCreate() {
     }
   } catch (e) {
     console.warn('Backend generatorCreate notice:', e);
-  }
-
-  // Also if user has token, attempt accountAdd via backend
-  if (hasToken.value) {
-    accountAdd(fullEmail).catch(e => {
-      console.warn('Backend accountAdd notice:', e);
-    });
+    // If backend returned a clear validation error, alert user
+    if (e && e.message && !e.message.includes('Network Error')) {
+      ElMessage({
+        message: e.message,
+        type: 'warning',
+        plain: true
+      });
+    }
   }
 
   const record = {
