@@ -116,37 +116,51 @@ onBeforeUnmount(() => {
   }
 }
 
-.el-aside-hide {
-  position: fixed;
-  left: 0;
-  height: 100%;
-  z-index: 100;
-  transform: translateX(-100%);
-  transition: all 120ms ease;
-}
-
-.aside-show {
-  box-shadow: 1px 0 20px rgba(0, 242, 254, 0.15);
-  transform: translateX(0);
-  transition: all 120ms ease;
-  z-index: 101;
-  border-right: 1px solid rgba(0, 242, 254, 0.18);
-  @media (max-width: 1025px) {
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 101;
-    height: 100%;
-    background: #070b1a;
-  }
-}
-
 .el-aside {
-  width: auto;
-  transition: all 120ms ease;
+  width: 240px;
   background: var(--aside-backgound);
   position: relative;
   z-index: 2;
+  overflow: hidden;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+
+  &.aside-show {
+    width: 240px !important;
+    min-width: 240px;
+    box-shadow: 1px 0 20px rgba(0, 242, 254, 0.15);
+    transform: translateX(0);
+    border-right: 1px solid rgba(0, 242, 254, 0.18);
+    opacity: 1;
+
+    @media (max-width: 1025px) {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 101;
+      height: 100%;
+      background: #070b1a;
+    }
+  }
+
+  &.el-aside-hide {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-right: none !important;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-100%);
+
+    @media (max-width: 1025px) {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 240px !important;
+    }
+  }
 }
 
 .layout {
@@ -156,15 +170,21 @@ onBeforeUnmount(() => {
   top: 0;
   left: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: row;
 }
 
 .main-container {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
   min-height: 100%;
   background: transparent;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   position: relative;
   z-index: 1;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .el-main {

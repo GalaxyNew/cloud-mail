@@ -87,6 +87,7 @@ const route = useRoute();
 <style lang="scss" scoped>
 .aside-container {
   padding-bottom: 20px;
+  width: 240px;
 }
 
 .title {
