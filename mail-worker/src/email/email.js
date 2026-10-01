@@ -12,6 +12,10 @@ import userService from '../service/user-service';
 import telegramService from '../service/telegram-service';
 import aiService from '../service/ai-service';
 import webhookService from '../service/webhook-service';
+import orm from '../entity/orm';
+import accountTable from '../entity/account';
+import userTable from '../entity/user';
+import { eq, and } from 'drizzle-orm';
 
 export async function email(message, env, ctx) {
 
@@ -93,6 +97,66 @@ export async function email(message, env, ctx) {
 			}
 		} catch (accErr) {
 			console.error('Error querying account:', accErr);
+		}
+
+		// If account not registered, auto-bind domain recipient to target user
+		if (!account) {
+			try {
+				const toDomain = emailUtils.getDomain(toAddress).toLowerCase();
+				const domainList = (settingData.domainList || []).map(d => String(d).toLowerCase());
+				const envDomains = Array.isArray(env.domain) ? env.domain.map(d => String(d).toLowerCase()) : (typeof env.domain === 'string' ? [env.domain.toLowerCase()] : []);
+				const isOurDomain = envDomains.includes(toDomain) || domainList.includes(toDomain) || toDomain === 'tv987.shop';
+
+				if (isOurDomain) {
+					let targetUserId = 0;
+					try {
+						const kvTarget = env.kv ? await env.kv.get('generator_target_user_id') : null;
+						if (kvTarget && Number(kvTarget) > 0) {
+							targetUserId = Number(kvTarget);
+						} else if (settingData.generatorTargetUserId && Number(settingData.generatorTargetUserId) > 0) {
+							targetUserId = Number(settingData.generatorTargetUserId);
+						}
+					} catch (kvErr) {
+						console.warn('Error reading generator_target_user_id in email.js:', kvErr);
+					}
+
+					let targetUser = null;
+					if (targetUserId > 0) {
+						try {
+							targetUser = await userService.selectByIdIncludeDel({ env }, targetUserId);
+						} catch (e) {}
+					}
+					if (!targetUser && env.admin) {
+						try {
+							targetUser = await userService.selectByEmail({ env }, env.admin);
+						} catch (e) {}
+					}
+					if (!targetUser) {
+						try {
+							targetUser = await orm({ env }).select().from(userTable).where(eq(userTable.isDel, isDel.NORMAL)).get();
+						} catch (e) {}
+					}
+
+					if (targetUser) {
+						targetUserId = targetUser.userId;
+						try {
+							account = await orm({ env }).insert(accountTable).values({
+								email: toAddress,
+								name: emailUtils.getName(toAddress),
+								userId: targetUserId,
+								status: 0,
+								allReceive: 1
+							}).returning().get();
+							console.log(`Auto-created account ${toAddress} for targetUserId ${targetUserId}`);
+							await orm({ env }).update(accountTable).set({ allReceive: 1 }).where(and(eq(accountTable.userId, targetUserId), eq(accountTable.isDel, isDel.NORMAL))).run();
+						} catch (cErr) {
+							account = await accountService.selectByEmailIncludeDel({ env }, toAddress);
+						}
+					}
+				}
+			} catch (bindErr) {
+				console.error('Error auto-binding account in email.js:', bindErr);
+			}
 		}
 
 		if (!account && noRecipient === settingConst.noRecipient.CLOSE) {

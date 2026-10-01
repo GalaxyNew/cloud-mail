@@ -60,9 +60,30 @@ const emailService = {
 			size = 50;
 		}
 
-		if (isNaN(allReceive)) {
+		if (isNaN(allReceive) || allReceive === 0) {
 			let accountRow = await accountService.selectById(c, accountId);
-			allReceive = accountRow.allReceive;
+			if (accountRow && accountRow.allReceive) {
+				allReceive = accountRow.allReceive;
+			}
+		}
+
+		// Auto-rescue any previously unclaimed emails for this user's accounts
+		try {
+			const userAccounts = await orm(c).select({ email: account.email, accountId: account.accountId }).from(account).where(and(eq(account.userId, userId), eq(account.isDel, isDel.NORMAL))).all();
+			for (const ua of userAccounts) {
+				await orm(c).update(email)
+					.set({
+						userId: userId,
+						accountId: ua.accountId,
+						status: emailConst.status.RECEIVE
+					})
+					.where(and(
+						eq(email.status, emailConst.status.NOONE),
+						sql`${email.toEmail} COLLATE NOCASE = ${ua.email}`
+					)).run();
+			}
+		} catch (rescueErr) {
+			console.warn('Auto rescue unclaimed emails notice:', rescueErr);
 		}
 
 		const filters = this.emailListFilters({ userId, accountId, type, allReceive, emailId, timeSort });
@@ -839,9 +860,11 @@ const emailService = {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
 
-		if (isNaN(allReceive)) {
+		if (isNaN(allReceive) || allReceive === 0) {
 			let accountRow = await accountService.selectById(c, accountId);
-			allReceive = accountRow.allReceive;
+			if (accountRow && accountRow.allReceive) {
+				allReceive = accountRow.allReceive;
+			}
 		}
 
 		const list = await orm(c).select({ ...emailListColumns }).from(email)

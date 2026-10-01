@@ -10,7 +10,7 @@ import verifyUtils from '../utils/verify-utils';
 import { t } from '../i18n/i18n';
 import reqUtils from '../utils/req-utils';
 import dayjs from 'dayjs';
-import { isDel, roleConst } from '../const/entity-const';
+import { isDel, roleConst, emailConst } from '../const/entity-const';
 import email from '../entity/email';
 import account from '../entity/account';
 import user from '../entity/user';
@@ -264,20 +264,41 @@ const publicService = {
 		const existAccount = await accountService.selectByEmailIncludeDel(c, email);
 		if (existAccount) {
 			if (existAccount.isDel === isDel.DELETE) {
-				await orm(c).update(account).set({ isDel: isDel.NORMAL, userId: targetUserId }).where(eq(account.accountId, existAccount.accountId)).run();
+				await orm(c).update(account).set({ isDel: isDel.NORMAL, userId: targetUserId, allReceive: 1 }).where(eq(account.accountId, existAccount.accountId)).run();
+				await orm(c).update(account).set({ allReceive: 1 }).where(and(eq(account.userId, targetUserId), eq(account.isDel, isDel.NORMAL))).run();
 				return { accountId: existAccount.accountId, email, userId: targetUserId, targetUserEmail: targetUser.email, restored: true };
 			}
+			await orm(c).update(account).set({ allReceive: 1 }).where(and(eq(account.userId, targetUserId), eq(account.isDel, isDel.NORMAL))).run();
 			return { accountId: existAccount.accountId, email, userId: existAccount.userId, targetUserEmail: targetUser.email, exists: true };
 		}
 
-		// 4. Insert into account table
+		// 4. Insert into account table with allReceive: 1
 		const newAccount = await orm(c).insert(account).values({
 			email: email,
 			name: emailUtils.getName(email),
 			userId: targetUserId,
 			status: 0,
-			allReceive: 0
+			allReceive: 1
 		}).returning().get();
+
+		// Ensure target user's primary and other accounts have allReceive enabled
+		try {
+			await orm(c).update(account).set({ allReceive: 1 }).where(and(eq(account.userId, targetUserId), eq(account.isDel, isDel.NORMAL))).run();
+		} catch (allRecErr) {
+			console.warn('Set allReceive warning in generatorCreateAccount:', allRecErr);
+		}
+
+		// Auto-rescue any previously received unclaimed emails for this address
+		try {
+			await orm(c).update(email)
+				.set({ userId: targetUserId, accountId: newAccount.accountId, status: emailConst.status.RECEIVE })
+				.where(and(
+					sql`${email.toEmail} COLLATE NOCASE = ${email}`,
+					eq(email.status, emailConst.status.NOONE)
+				)).run();
+		} catch (linkErr) {
+			console.warn('Failed to link unclaimed emails:', linkErr);
+		}
 
 		return {
 			accountId: newAccount.accountId,

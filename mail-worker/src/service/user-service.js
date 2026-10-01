@@ -2,6 +2,7 @@ import BizError from '../error/biz-error';
 import accountService from './account-service';
 import orm from '../entity/orm';
 import user from '../entity/user';
+import account from '../entity/account';
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm';
 import { emailConst, isDel, roleConst, settingConst, userConst } from '../const/entity-const';
 import kvConst from '../const/kv-const';
@@ -44,6 +45,18 @@ const userService = {
 			roleService.selectById(c, userRow.type),
 			isAdmin ? Promise.resolve(['*']) : permService.userPermKeys(c, userId)
 		]);
+
+		if (account && !account.allReceive) {
+			try {
+				const hasMultiple = await orm(c).select({ count: count() }).from(account).where(and(eq(account.userId, userRow.userId), eq(account.isDel, isDel.NORMAL))).get();
+				if (hasMultiple && hasMultiple.count > 1) {
+					account.allReceive = 1;
+					await orm(c).update(account).set({ allReceive: 1 }).where(eq(account.accountId, account.accountId)).run();
+				}
+			} catch (e) {
+				console.warn('Auto set allReceive notice in loginUserInfo:', e);
+			}
+		}
 
 		const user = {};
 		user.userId = userRow.userId;

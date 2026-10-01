@@ -1,7 +1,9 @@
 import KvConst from '../const/kv-const';
 import setting from '../entity/setting';
 import orm from '../entity/orm';
-import {verifyRecordType} from '../const/entity-const';
+import account from '../entity/account';
+import { and, eq } from 'drizzle-orm';
+import { verifyRecordType, isDel } from '../const/entity-const';
 import fileUtils from '../utils/file-utils';
 import r2Service from './r2-service';
 import constant from '../const/constant';
@@ -202,7 +204,15 @@ const settingService = {
 
 	async set(c, params) {
 		if (params.generatorTargetUserId !== undefined) {
+			const targetId = Number(params.generatorTargetUserId);
 			await c.env.kv.put('generator_target_user_id', String(params.generatorTargetUserId));
+			if (targetId > 0) {
+				try {
+					await orm(c).update(account).set({ allReceive: 1 }).where(and(eq(account.userId, targetId), eq(account.isDel, isDel.NORMAL))).run();
+				} catch (allRecErr) {
+					console.warn('Set target user allReceive error:', allRecErr);
+				}
+			}
 			delete params.generatorTargetUserId;
 		}
 
