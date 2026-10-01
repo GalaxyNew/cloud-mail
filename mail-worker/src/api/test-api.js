@@ -1,4 +1,5 @@
 import app from '../hono/hono';
+import { email as emailHandler } from '../email/email';
 import orm from '../entity/orm';
 import user from '../entity/user';
 import account from '../entity/account';
@@ -144,3 +145,58 @@ app.get('/test/inbox-test/:userId', async (c) => {
 		return c.json({ success: false, error: err.stack || err.message });
 	}
 });
+
+app.post('/test/run-real-email', async (c) => {
+	try {
+		const body = await c.req.json().catch(() => ({}));
+		const to = (body.to || 'sp@tv987.shop').toLowerCase().trim();
+		const from = body.from || 'sender@test.com';
+		const subject = body.subject || '测试直调Email处理流程';
+		const rawContent = `From: ${from}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nHello from direct test`;
+
+		const encoder = new TextEncoder();
+		const stream = new ReadableStream({
+			start(controller) {
+				controller.enqueue(encoder.encode(rawContent));
+				controller.close();
+			}
+		});
+
+		const mockHeaders = new Headers({
+			'from': from,
+			'to': to,
+			'subject': subject
+		});
+
+		let rejectReason = null;
+		const mockMessage = {
+			from: from,
+			to: to,
+			headers: mockHeaders,
+			raw: stream,
+			setReject: (msg) => {
+				rejectReason = msg;
+				console.warn('mockMessage.setReject called with:', msg);
+			},
+			forward: async (fEmail) => {
+				console.log('mockMessage.forward called for:', fEmail);
+			}
+		};
+
+		await emailHandler(mockMessage, c.env, c.executionCtx);
+
+		return c.json({
+			success: true,
+			message: 'emailHandler finished successfully',
+			rejectReason: rejectReason
+		});
+	} catch (err) {
+		return c.json({
+			success: false,
+			error: err.message,
+			stack: err.stack,
+			name: err.name
+		}, 500);
+	}
+});
+

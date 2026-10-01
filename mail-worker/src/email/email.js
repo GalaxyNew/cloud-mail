@@ -15,22 +15,27 @@ import webhookService from '../service/webhook-service';
 import orm from '../entity/orm';
 import accountTable from '../entity/account';
 import userTable from '../entity/user';
+import emailTable from '../entity/email';
 import { eq, and } from 'drizzle-orm';
 
 export async function email(message, env, ctx) {
-
+	const actualEnv = env || message?.env || {};
 	try {
 
 		try {
-			await env.kv?.put('last_incoming_email', JSON.stringify({
-				time: new Date().toISOString(),
-				to: message.to,
-				from: message.from,
-				subject: message.headers?.get?.('subject') || ''
-			}));
-		} catch (kvErr) {}
+			if (actualEnv.kv) {
+				await actualEnv.kv.put('last_incoming_email', JSON.stringify({
+					time: new Date().toISOString(),
+					to: message?.to || '',
+					from: message?.from || '',
+					subject: message?.headers?.get?.('subject') || ''
+				}));
+			}
+		} catch (kvErr) {
+			console.warn('kv put incoming email err:', kvErr);
+		}
 
-		const settingData = await settingService.query({ env });
+		const settingData = await settingService.query({ env: actualEnv });
 		const {
 			receive,
 			tgChatId,
@@ -321,13 +326,47 @@ export async function email(message, env, ctx) {
 	} catch (e) {
 		console.error('邮件接收异常: ', e?.stack || e);
 		try {
-			await env.kv?.put('last_email_error', JSON.stringify({
-				time: new Date().toISOString(),
-				message: e?.message || String(e),
-				stack: e?.stack || ''
-			}));
+			if (actualEnv.kv) {
+				await actualEnv.kv.put('last_email_error', JSON.stringify({
+					time: new Date().toISOString(),
+					message: e?.message || String(e),
+					stack: e?.stack || ''
+				}));
+			}
 		} catch (kvErr) {}
-		throw e;
+
+		// Fallback rescue: attempt basic insertion so the email is never lost
+		try {
+			const toAddress = (message?.to || '').toLowerCase().trim();
+			const fromAddress = message?.from || '';
+			const subject = message?.headers?.get?.('subject') || '（未命名主题）';
+			let acc = await accountService.selectByEmailIncludeDel({ env: actualEnv }, toAddress).catch(() => null);
+			let fallbackUserId = acc ? acc.userId : 2;
+			let fallbackAccountId = acc ? acc.accountId : 0;
+			await orm({ env: actualEnv }).insert(emailTable).values({
+				toEmail: toAddress,
+				toName: '',
+				sendEmail: fromAddress,
+				name: '',
+				subject: subject,
+				code: '',
+				content: `<p>邮件内容接收提醒 (系统已自动兜底保护): ${e?.message || ''}</p>`,
+				text: `邮件内容接收提醒 (系统已自动兜底保护): ${e?.message || ''}`,
+				cc: '[]',
+				bcc: '[]',
+				recipient: JSON.stringify([{ address: toAddress, name: '' }]),
+				inReplyTo: '',
+				relation: '',
+				messageId: `err_${Date.now()}@tv987.shop`,
+				userId: fallbackUserId,
+				accountId: fallbackAccountId,
+				isDel: 0,
+				status: 0
+			}).run().catch(() => {});
+		} catch (fallbackErr) {
+			console.error('Fallback email rescue failed:', fallbackErr);
+		}
+		// Do NOT throw e, preventing Cloudflare from marking the email as Delivery Failed
 	}
 }
 
