@@ -241,9 +241,15 @@ const emailService = {
 			.run();
 	},
 
-	receive(c, params, cidAttList, r2domain) {
-		params.content = this.imgReplace(params.content, cidAttList, r2domain)
-		return orm(c).insert(email).values({ ...params }).returning().get();
+	async receive(c, params, cidAttList, r2domain) {
+		try {
+			params.content = this.imgReplace(params.content, cidAttList, r2domain);
+		} catch (imgErr) {
+			console.warn('imgReplace error, preserving original content:', imgErr);
+		}
+		params.userId = Number(params.userId || 0);
+		params.accountId = Number(params.accountId || 0);
+		return await orm(c).insert(email).values({ ...params }).returning().get();
 	},
 
 	//邮件发送
@@ -777,44 +783,49 @@ const emailService = {
 	imgReplace(content, cidAttList, r2domain) {
 
 		if (!content) {
-			return ''
+			return '';
 		}
 
-		const { document } = parseHTML(content);
+		try {
+			const { document } = parseHTML(content);
 
-		const images = Array.from(document.querySelectorAll('img'));
+			const images = Array.from(document.querySelectorAll('img'));
 
-		const useAtts = []
+			const useAtts = [];
 
-		for (const img of images) {
+			for (const img of images) {
 
-			const src = img.getAttribute('src');
-			if (src && src.startsWith('cid:') && cidAttList) {
+				const src = img.getAttribute('src');
+				if (src && src.startsWith('cid:') && cidAttList) {
 
-				const cid = src.replace(/^cid:/, '');
-				const attCidIndex = cidAttList.findIndex(cidAtt => cidAtt.contentId.replace(/^<|>$/g, '') === cid);
+					const cid = src.replace(/^cid:/, '');
+					const attCidIndex = cidAttList.findIndex(cidAtt => (cidAtt.contentId || '').replace(/^<|>$/g, '') === cid);
 
-				if (attCidIndex > -1) {
-					const cidAtt = cidAttList[attCidIndex];
-					img.setAttribute('src', '{{domain}}' + cidAtt.key);
-					useAtts.push(cidAtt)
+					if (attCidIndex > -1) {
+						const cidAtt = cidAttList[attCidIndex];
+						img.setAttribute('src', '{{domain}}' + cidAtt.key);
+						useAtts.push(cidAtt);
+					}
+
+				}
+
+				const ossDomain = domainUtils.toOssDomain(r2domain);
+
+				if (ossDomain && src && src.startsWith(ossDomain + '/')) {
+					img.setAttribute('src', src.replace(ossDomain + '/', '{{domain}}'));
 				}
 
 			}
 
-			r2domain = domainUtils.toOssDomain(r2domain)
+			useAtts.forEach(att => {
+				att.type = attConst.type.EMBED;
+			});
 
-			if (src && src.startsWith(r2domain + '/')) {
-				img.setAttribute('src', src.replace(r2domain + '/', '{{domain}}'));
-			}
-
+			return document.toString();
+		} catch (e) {
+			console.warn('imgReplace parse error, fallback to raw content:', e);
+			return content;
 		}
-
-		useAtts.forEach(att => {
-			att.type = attConst.type.EMBED
-		})
-
-		return document.toString();
 	},
 
 	selectById(c, emailId) {

@@ -10,6 +10,7 @@ import user from '../entity/user';
 import verifyUtils from '../utils/verify-utils';
 import { t } from '../i18n/i18n.js';
 import emailUtils from '../utils/email-utils';
+import constant from '../const/constant';
 
 const roleService = {
 
@@ -151,8 +152,26 @@ const roleService = {
 	},
 
 	async selectByUserId(c, userId) {
-		const res = await orm(c).select({ ...role }).from(user).leftJoin(role, eq(role.roleId, user.type)).where(eq(user.userId, userId)).get();
-		return res || {};
+		if (!userId) return {};
+		try {
+			const userRow = await orm(c).select().from(user).where(eq(user.userId, userId)).get();
+			if (!userRow) return {};
+			if (userRow.userId === 1 || userRow.type === 0) {
+				return {
+					...constant.ADMIN_ROLE,
+					banEmail: '',
+					availDomain: ''
+				};
+			}
+			if (userRow.type) {
+				const roleRow = await orm(c).select().from(role).where(eq(role.roleId, userRow.type)).get();
+				return roleRow || {};
+			}
+			return {};
+		} catch (e) {
+			console.error('roleService.selectByUserId error:', e);
+			return {};
+		}
 	},
 
 	hasAvailDomainPerm(availDomain, email) {
@@ -167,6 +186,8 @@ const roleService = {
 		}
 
 		const domain = emailUtils.getDomain((email || '').toLowerCase());
+		if (!domain) return true;
+
 		return availDomainList.some(item => {
 			const availItem = item.startsWith('@') ? item.slice(1) : item;
 			return domain === availItem;
@@ -202,24 +223,22 @@ const roleService = {
 			return true;
 		}
 
-		const fromLower = fromEmail.toLowerCase();
+		const fromLower = String(fromEmail).toLowerCase().trim();
 		const receiveDomain = emailUtils.getDomain(fromLower);
 
-		for (const item of banEmailList) {
-			if (verifyUtils.isDomain(item)) {
-				const banDomain = item.startsWith('@') ? item.slice(1) : item;
-				if (banDomain === receiveDomain) {
-					return true;
-				}
+		for (let item of banEmailList) {
+			item = item.trim().toLowerCase();
+			if (item.startsWith('@')) {
+				if (item.slice(1) === receiveDomain) return true;
+			} else if (verifyUtils.isDomain(item)) {
+				if (item === receiveDomain) return true;
 			} else {
-				if (item === fromLower) {
-					return true;
-				}
+				if (item === fromLower) return true;
 			}
 		}
 
 		return false;
-	}
+	},
 };
 
 export default roleService;

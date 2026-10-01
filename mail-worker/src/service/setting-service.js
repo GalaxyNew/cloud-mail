@@ -15,20 +15,48 @@ const settingService = {
 
 	async refresh(c) {
 		const settingRow = await orm(c).select().from(setting).get();
-		settingRow.resendTokens = JSON.parse(settingRow.resendTokens);
-		c.set('setting', settingRow);
-		await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+		if (settingRow) {
+			try {
+				settingRow.resendTokens = typeof settingRow.resendTokens === 'string' ? JSON.parse(settingRow.resendTokens || '{}') : (settingRow.resendTokens || {});
+			} catch (e) {
+				settingRow.resendTokens = {};
+			}
+			c.set?.('setting', settingRow);
+			await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+		}
 	},
 
 	async query(c) {
 
 		if (c.get?.('setting')) {
-			return c.get('setting')
+			return c.get('setting');
 		}
 
-		const setting = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+		let settingData = null;
+		try {
+			settingData = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
+		} catch (kvErr) {
+			console.warn('kv.get SETTING warning:', kvErr);
+		}
 
-		if (!setting) {
+		if (!settingData) {
+			try {
+				const settingRow = await orm(c).select().from(setting).get();
+				if (settingRow) {
+					try {
+						settingRow.resendTokens = typeof settingRow.resendTokens === 'string' ? JSON.parse(settingRow.resendTokens || '{}') : (settingRow.resendTokens || {});
+					} catch (e) {
+						settingRow.resendTokens = {};
+					}
+					settingData = settingRow;
+					await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+				}
+			} catch (dbErr) {
+				console.error('Failed to load setting from DB:', dbErr);
+			}
+		}
+
+		if (!settingData) {
 			throw new BizError('数据库未初始化 Database not initialized.');
 		}
 
@@ -36,37 +64,54 @@ const settingService = {
 
 		if (typeof domainList === 'string') {
 			try {
-				domainList = JSON.parse(domainList)
+				domainList = JSON.parse(domainList);
 			} catch (error) {
-				throw new BizError(t('notJsonDomain'));
+				if (domainList.includes(',')) {
+					domainList = domainList.split(',').map(s => s.trim()).filter(Boolean);
+				} else if (domainList.trim()) {
+					domainList = [domainList.trim()];
+				} else {
+					domainList = [];
+				}
 			}
 		}
 
-		if (!c.env.domain) {
-			throw new BizError(t('noDomainVariable'));
+		if (!Array.isArray(domainList) || domainList.length === 0) {
+			domainList = ['tv987.shop'];
 		}
 
-		domainList = domainList.map(item => '@' + item);
-		setting.domainList = domainList;
+		domainList = domainList.map(item => item.startsWith('@') ? item : '@' + item);
+		settingData.domainList = domainList;
 
 		let projectLink = c.env.project_link;
 		if (typeof projectLink === 'string' && projectLink === 'false') {
-			projectLink = false
+			projectLink = false;
 		} else if (projectLink === false) {
-			projectLink = false
+			projectLink = false;
 		} else {
-			projectLink = true
+			projectLink = true;
 		}
 
-		setting.projectLink = projectLink;
+		settingData.projectLink = projectLink;
 
-		setting.emailPrefixFilter = setting.emailPrefixFilter.split(",").filter(Boolean);
+		if (typeof settingData.emailPrefixFilter === 'string') {
+			settingData.emailPrefixFilter = settingData.emailPrefixFilter.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+		} else if (Array.isArray(settingData.emailPrefixFilter)) {
+			settingData.emailPrefixFilter = settingData.emailPrefixFilter.map(s => String(s).trim().toLowerCase()).filter(Boolean);
+		} else {
+			settingData.emailPrefixFilter = [];
+		}
 
-		const kvTarget = await c.env.kv.get('generator_target_user_id');
-		setting.generatorTargetUserId = kvTarget ? Number(kvTarget) : 0;
+		let kvTarget = null;
+		try {
+			kvTarget = await c.env.kv.get('generator_target_user_id');
+		} catch (kvErr) {
+			console.warn('kv get generator_target_user_id warning:', kvErr);
+		}
+		settingData.generatorTargetUserId = kvTarget ? Number(kvTarget) : (Number(settingData.generatorTargetUserId) || 0);
 
-		c.set?.('setting', setting);
-		return setting;
+		c.set?.('setting', settingData);
+		return settingData;
 	},
 
 	async get(c, showSiteKey = false) {
@@ -120,17 +165,17 @@ const settingService = {
 		}
 
 		const settingData = await this.query(c);
-		let resendTokens = { ...settingData.resendTokens, ...params.resendTokens };
+		let resendTokens = { ...(settingData.resendTokens || {}), ...params.resendTokens };
 		Object.keys(resendTokens).forEach(domain => {
 			if (!resendTokens[domain]) delete resendTokens[domain];
 		});
 
 		if (Array.isArray(params.emailPrefixFilter)) {
-			params.emailPrefixFilter = params.emailPrefixFilter + '';
+			params.emailPrefixFilter = params.emailPrefixFilter.join(',');
 		}
 
 		if (Array.isArray(params.aiCodeFilter)) {
-			params.aiCodeFilter = params.aiCodeFilter + '';
+			params.aiCodeFilter = params.aiCodeFilter.join(',');
 		}
 
 		if (params.webhookUrl !== undefined) {
@@ -139,7 +184,9 @@ const settingService = {
 
 		params.resendTokens = JSON.stringify(resendTokens);
 
-		await orm(c).update(setting).set({ ...params }).returning().get();
+		if (Object.keys(params).length > 0) {
+			await orm(c).update(setting).set({ ...params }).returning().get();
+		}
 		await this.refresh(c);
 	},
 
