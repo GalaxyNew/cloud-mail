@@ -46,6 +46,7 @@ app.get('/test/diag', async (c) => {
 
 		return c.json({
 			success: true,
+			envKeys: c.env ? Object.keys(c.env) : [],
 			kvTarget,
 			lastIncoming: lastIncoming ? JSON.parse(lastIncoming) : null,
 			lastError: lastError ? JSON.parse(lastError) : null,

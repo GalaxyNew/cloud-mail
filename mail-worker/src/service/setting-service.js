@@ -13,6 +13,12 @@ import verifyRecordService from './verify-record-service';
 import userContext from '../security/user-context';
 import domainUtils from '../utils/domain-uitls';
 
+let cfWorkersEnv = null;
+try {
+	const mod = await import('cloudflare:workers');
+	cfWorkersEnv = mod?.env;
+} catch (e) {}
+
 const settingService = {
 
 	async refresh(c) {
@@ -24,39 +30,42 @@ const settingService = {
 				settingRow.resendTokens = {};
 			}
 			c.set?.('setting', settingRow);
-			await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+			const kv = c?.env?.kv || c?.env?.KV || c?.kv || c?.KV || cfWorkersEnv?.kv || cfWorkersEnv?.KV || (typeof globalThis !== 'undefined' ? (globalThis.kv || globalThis.KV || globalThis.env?.kv) : null);
+			if (kv) {
+				await kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+			}
 		}
 	},
 
 	async query(c) {
 
-		if (c.get?.('setting')) {
+		if (c?.get?.('setting')) {
 			return c.get('setting');
 		}
 
+		const kv = c?.env?.kv || c?.env?.KV || c?.kv || c?.KV || cfWorkersEnv?.kv || cfWorkersEnv?.KV || (typeof globalThis !== 'undefined' ? (globalThis.kv || globalThis.KV || globalThis.env?.kv) : null);
+
 		let settingData = null;
-		try {
-			settingData = await c.env.kv.get(KvConst.SETTING, { type: 'json' });
-		} catch (kvErr) {
-			console.warn('kv.get SETTING warning:', kvErr);
+		if (kv) {
+			try {
+				settingData = await kv.get(KvConst.SETTING, { type: 'json' });
+			} catch (kvErr) {
+				console.warn('kv.get SETTING warning:', kvErr);
+			}
 		}
 
 		if (!settingData) {
 			try {
-				const hasDb = !!(c.env?.db || c.env?.DB);
-				if (hasDb) {
-					const settingRow = await orm(c).select().from(setting).get();
-					if (settingRow) {
-						try {
-							settingRow.resendTokens = typeof settingRow.resendTokens === 'string' ? JSON.parse(settingRow.resendTokens || '{}') : (settingRow.resendTokens || {});
-						} catch (e) {
-							settingRow.resendTokens = {};
-						}
-						settingData = settingRow;
-						const kv = c.env?.kv || c.env?.KV;
-						if (kv) {
-							await kv.put(KvConst.SETTING, JSON.stringify(settingRow));
-						}
+				const settingRow = await orm(c).select().from(setting).get();
+				if (settingRow) {
+					try {
+						settingRow.resendTokens = typeof settingRow.resendTokens === 'string' ? JSON.parse(settingRow.resendTokens || '{}') : (settingRow.resendTokens || {});
+					} catch (e) {
+						settingRow.resendTokens = {};
+					}
+					settingData = settingRow;
+					if (kv) {
+						await kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 					}
 				}
 			} catch (dbErr) {
@@ -104,7 +113,7 @@ const settingService = {
 			};
 		}
 
-		let domainList = c.env.domain;
+		let domainList = c?.env?.domain || c?.domain || cfWorkersEnv?.domain;
 
 		if (typeof domainList === 'string') {
 			try {
@@ -127,7 +136,7 @@ const settingService = {
 		domainList = domainList.map(item => item.startsWith('@') ? item : '@' + item);
 		settingData.domainList = domainList;
 
-		let projectLink = c.env.project_link;
+		let projectLink = c?.env?.project_link ?? c?.project_link ?? cfWorkersEnv?.project_link;
 		if (typeof projectLink === 'string' && projectLink === 'false') {
 			projectLink = false;
 		} else if (projectLink === false) {
@@ -147,14 +156,16 @@ const settingService = {
 		}
 
 		let kvTarget = null;
-		try {
-			kvTarget = await c.env.kv.get('generator_target_user_id');
-		} catch (kvErr) {
-			console.warn('kv get generator_target_user_id warning:', kvErr);
+		if (kv) {
+			try {
+				kvTarget = await kv.get('generator_target_user_id');
+			} catch (kvErr) {
+				console.warn('kv get generator_target_user_id warning:', kvErr);
+			}
 		}
 		settingData.generatorTargetUserId = kvTarget ? Number(kvTarget) : (Number(settingData.generatorTargetUserId) || 0);
 
-		c.set?.('setting', settingData);
+		c?.set?.('setting', settingData);
 		return settingData;
 	},
 

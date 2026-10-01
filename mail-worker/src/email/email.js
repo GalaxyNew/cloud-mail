@@ -18,8 +18,27 @@ import userTable from '../entity/user';
 import emailTable from '../entity/email';
 import { eq, and } from 'drizzle-orm';
 
+let cfWorkersEnv = null;
+try {
+	const mod = await import('cloudflare:workers');
+	cfWorkersEnv = mod?.env;
+} catch (e) {}
+
 export async function email(message, env, ctx) {
-	const actualEnv = env || message?.env || {};
+	const actualEnv = Object.assign(
+		{},
+		cfWorkersEnv || {},
+		typeof globalThis !== 'undefined' ? (globalThis.env || globalThis) : {},
+		(env && typeof env === 'object') ? env : {},
+		(message?.env && typeof message.env === 'object') ? message.env : {},
+		(ctx?.env && typeof ctx.env === 'object') ? ctx.env : {}
+	);
+	if (!actualEnv.db) actualEnv.db = actualEnv.DB || cfWorkersEnv?.db || cfWorkersEnv?.DB || (typeof globalThis !== 'undefined' ? (globalThis.db || globalThis.DB || globalThis.env?.db) : null);
+	if (!actualEnv.kv) actualEnv.kv = actualEnv.KV || cfWorkersEnv?.kv || cfWorkersEnv?.KV || (typeof globalThis !== 'undefined' ? (globalThis.kv || globalThis.KV || globalThis.env?.kv) : null);
+	if (!actualEnv.r2) actualEnv.r2 = actualEnv.R2 || cfWorkersEnv?.r2 || cfWorkersEnv?.R2 || (typeof globalThis !== 'undefined' ? (globalThis.r2 || globalThis.R2 || globalThis.env?.r2) : null);
+
+	const callCtx = { env: actualEnv, db: actualEnv.db, kv: actualEnv.kv, r2: actualEnv.r2, ...actualEnv };
+
 	try {
 
 		try {
@@ -35,7 +54,7 @@ export async function email(message, env, ctx) {
 			console.warn('kv put incoming email err:', kvErr);
 		}
 
-		const settingData = await settingService.query({ env: actualEnv });
+		const settingData = await settingService.query(callCtx);
 		const {
 			receive,
 			tgChatId,
@@ -102,11 +121,11 @@ export async function email(message, env, ctx) {
 
 		let account = null;
 		try {
-			account = await accountService.selectByEmailIncludeDel({ env: env }, toAddress);
+			account = await accountService.selectByEmailIncludeDel(callCtx, toAddress);
 			if (!account) {
 				const baseEmail = emailUtils.getBaseEmail(toAddress);
 				if (baseEmail && baseEmail.toLowerCase() !== toAddress) {
-					account = await accountService.selectByEmailIncludeDel({ env: env }, baseEmail);
+					account = await accountService.selectByEmailIncludeDel(callCtx, baseEmail);
 				}
 			}
 		} catch (accErr) {
@@ -118,13 +137,13 @@ export async function email(message, env, ctx) {
 			try {
 				const toDomain = emailUtils.getDomain(toAddress).toLowerCase();
 				const domainList = (settingData.domainList || []).map(d => String(d).toLowerCase());
-				const envDomains = Array.isArray(env.domain) ? env.domain.map(d => String(d).toLowerCase()) : (typeof env.domain === 'string' ? [env.domain.toLowerCase()] : []);
+				const envDomains = Array.isArray(actualEnv.domain) ? actualEnv.domain.map(d => String(d).toLowerCase()) : (typeof actualEnv.domain === 'string' ? [actualEnv.domain.toLowerCase()] : []);
 				const isOurDomain = envDomains.includes(toDomain) || domainList.includes(toDomain) || toDomain === 'tv987.shop';
 
 				if (isOurDomain) {
 					let targetUserId = 0;
 					try {
-						const kvTarget = env.kv ? await env.kv.get('generator_target_user_id') : null;
+						const kvTarget = actualEnv.kv ? await actualEnv.kv.get('generator_target_user_id') : null;
 						if (kvTarget && Number(kvTarget) > 0) {
 							targetUserId = Number(kvTarget);
 						} else if (settingData.generatorTargetUserId && Number(settingData.generatorTargetUserId) > 0) {
@@ -137,24 +156,24 @@ export async function email(message, env, ctx) {
 					let targetUser = null;
 					if (targetUserId > 0) {
 						try {
-							targetUser = await userService.selectByIdIncludeDel({ env }, targetUserId);
+							targetUser = await userService.selectByIdIncludeDel(callCtx, targetUserId);
 						} catch (e) {}
 					}
-					if (!targetUser && env.admin) {
+					if (!targetUser && actualEnv.admin) {
 						try {
-							targetUser = await userService.selectByEmail({ env }, env.admin);
+							targetUser = await userService.selectByEmail(callCtx, actualEnv.admin);
 						} catch (e) {}
 					}
 					if (!targetUser) {
 						try {
-							targetUser = await orm({ env }).select().from(userTable).where(eq(userTable.isDel, isDel.NORMAL)).get();
+							targetUser = await orm(callCtx).select().from(userTable).where(eq(userTable.isDel, isDel.NORMAL)).get();
 						} catch (e) {}
 					}
 
 					if (targetUser) {
 						targetUserId = targetUser.userId;
 						try {
-							account = await orm({ env }).insert(accountTable).values({
+							account = await orm(callCtx).insert(accountTable).values({
 								email: toAddress,
 								name: emailUtils.getName(toAddress),
 								userId: targetUserId,
@@ -162,9 +181,9 @@ export async function email(message, env, ctx) {
 								allReceive: 1
 							}).returning().get();
 							console.log(`Auto-created account ${toAddress} for targetUserId ${targetUserId}`);
-							await orm({ env }).update(accountTable).set({ allReceive: 1 }).where(and(eq(accountTable.userId, targetUserId), eq(accountTable.isDel, isDel.NORMAL))).run();
+							await orm(callCtx).update(accountTable).set({ allReceive: 1 }).where(and(eq(accountTable.userId, targetUserId), eq(accountTable.isDel, isDel.NORMAL))).run();
 						} catch (cErr) {
-							account = await accountService.selectByEmailIncludeDel({ env }, toAddress);
+							account = await accountService.selectByEmailIncludeDel(callCtx, toAddress);
 						}
 					}
 				}
@@ -181,7 +200,7 @@ export async function email(message, env, ctx) {
 		let userRow = {};
 		if (account && account.userId) {
 			try {
-				userRow = (await userService.selectByIdIncludeDel({ env: env }, account.userId)) || {};
+				userRow = (await userService.selectByIdIncludeDel(callCtx, account.userId)) || {};
 			} catch (uErr) {
 				console.error('Error querying user:', uErr);
 			}
@@ -189,7 +208,7 @@ export async function email(message, env, ctx) {
 
 		// Check if recipient belongs to super admin
 		const uEmail = (userRow.email || '').toLowerCase().trim();
-		const adminConfig = (env.admin || '').toLowerCase().trim();
+		const adminConfig = (actualEnv.admin || '').toLowerCase().trim();
 		const isAdmin = (
 			userRow.userId === 1 ||
 			userRow.type === 0 ||
@@ -198,7 +217,7 @@ export async function email(message, env, ctx) {
 
 		if (account && !isAdmin) {
 			try {
-				let roleRow = await roleService.selectByUserId({ env: env }, account.userId);
+				let roleRow = await roleService.selectByUserId(callCtx, account.userId);
 				let banEmail = roleRow?.banEmail;
 				let availDomain = roleRow?.availDomain;
 
@@ -224,7 +243,7 @@ export async function email(message, env, ctx) {
 		const toName = emailParsed.to.find(item => (item.address || '').toLowerCase() === toAddress)?.name || '';
 		let code = '';
 		try {
-			code = await aiService.extractCode({ env }, emailParsed, { aiCode, aiCodeFilter });
+			code = await aiService.extractCode(callCtx, emailParsed, { aiCode, aiCodeFilter });
 		} catch (aiErr) {
 			console.error('AI code extraction error:', aiErr);
 		}
@@ -247,8 +266,8 @@ export async function email(message, env, ctx) {
 			inReplyTo: emailParsed.inReplyTo || '',
 			relation: emailParsed.references || '',
 			messageId: emailParsed.messageId || '',
-			userId: account ? account.userId : 0,
-			accountId: account ? account.accountId : 0,
+			userId: account ? account.userId : 1,
+			accountId: account ? account.accountId : 1,
 			isDel: isDel.DELETE,
 			status: emailConst.status.SAVING
 		};
@@ -266,7 +285,7 @@ export async function email(message, env, ctx) {
 			}
 		}
 
-		let emailRow = await emailService.receive({ env }, params, cidAttachments, r2Domain);
+		let emailRow = await emailService.receive(callCtx, params, cidAttachments, r2Domain);
 
 		if (emailRow && emailRow.emailId) {
 			attachments.forEach(attachment => {
@@ -277,13 +296,13 @@ export async function email(message, env, ctx) {
 
 			try {
 				if (attachments.length > 0) {
-					await attService.addAtt({ env }, attachments);
+					await attService.addAtt(callCtx, attachments);
 				}
 			} catch (e) {
 				console.error('附件添加异常:', e);
 			}
 
-			emailRow = await emailService.completeReceive({ env }, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
+			emailRow = await emailService.completeReceive(callCtx, account ? emailConst.status.RECEIVE : emailConst.status.NOONE, emailRow.emailId);
 		}
 
 		if (ruleType === settingConst.ruleType.RULE && ruleEmail) {
@@ -296,7 +315,7 @@ export async function email(message, env, ctx) {
 		// 转发到TG
 		if (tgBotStatus === settingConst.tgBotStatus.OPEN && tgChatId) {
 			try {
-				await telegramService.sendEmailToBot({ env }, emailRow);
+				await telegramService.sendEmailToBot(callCtx, emailRow);
 			} catch (tgErr) {
 				console.error('转发到TG失败:', tgErr);
 			}
@@ -317,7 +336,7 @@ export async function email(message, env, ctx) {
 		// 转发到 Webhook
 		if (webhookStatus === settingConst.webhookStatus.OPEN && webhookUrl) {
 			try {
-				await webhookService.sendEmail({ env }, emailRow, webhookUrl, webhookRetry, webhookSecret);
+				await webhookService.sendEmail(callCtx, emailRow, webhookUrl, webhookRetry, webhookSecret);
 			} catch (whErr) {
 				console.error('转发到Webhook失败:', whErr);
 			}
@@ -340,10 +359,10 @@ export async function email(message, env, ctx) {
 			const toAddress = (message?.to || '').toLowerCase().trim();
 			const fromAddress = message?.from || '';
 			const subject = message?.headers?.get?.('subject') || '（未命名主题）';
-			let acc = await accountService.selectByEmailIncludeDel({ env: actualEnv }, toAddress).catch(() => null);
-			let fallbackUserId = acc ? acc.userId : 2;
-			let fallbackAccountId = acc ? acc.accountId : 0;
-			await orm({ env: actualEnv }).insert(emailTable).values({
+			let acc = await accountService.selectByEmailIncludeDel(callCtx, toAddress).catch(() => null);
+			let fallbackUserId = acc ? acc.userId : 1;
+			let fallbackAccountId = acc ? acc.accountId : 1;
+			await orm(callCtx).insert(emailTable).values({
 				toEmail: toAddress,
 				toName: '',
 				sendEmail: fromAddress,
