@@ -21,6 +21,15 @@ export async function email(message, env, ctx) {
 
 	try {
 
+		try {
+			await env.kv?.put('last_incoming_email', JSON.stringify({
+				time: new Date().toISOString(),
+				to: message.to,
+				from: message.from,
+				subject: message.headers?.get?.('subject') || ''
+			}));
+		} catch (kvErr) {}
+
 		const settingData = await settingService.query({ env });
 		const {
 			receive,
@@ -311,6 +320,13 @@ export async function email(message, env, ctx) {
 
 	} catch (e) {
 		console.error('邮件接收异常: ', e?.stack || e);
+		try {
+			await env.kv?.put('last_email_error', JSON.stringify({
+				time: new Date().toISOString(),
+				message: e?.message || String(e),
+				stack: e?.stack || ''
+			}));
+		} catch (kvErr) {}
 		throw e;
 	}
 }
