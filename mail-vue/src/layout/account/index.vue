@@ -27,10 +27,6 @@
             {{ item.email }}
           </div>
           <div class="opt">
-            <div class="send-email" @click.stop>
-              <Icon @click="setAllReceive(item)" v-if="!item.allReceive" icon="eva:email-fill" width="22" height="22" color="#fccb1a"/>
-              <Icon @click="setAllReceive(item)" v-else icon="flat-color-icons:folder" width="22" height="22" color="#23c4f1" />
-            </div>
             <div class="settings" @click.stop>
               <Icon icon="fluent-color:clipboard-24" width="22" height="22" @click.stop="copyAccount(item.email)"/>
               <Icon icon="fluent:settings-24-filled" width="21" height="21" color="#909399"
