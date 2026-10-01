@@ -153,6 +153,7 @@ app.post('/test/run-real-email', async (c) => {
 		const body = await c.req.json().catch(() => ({}));
 		const to = (body.to || 'sp@tv987.shop').toLowerCase().trim();
 		const from = body.from || 'sender@test.com';
+		const subject = body.subject || '测试直调Email处理流程';
 		const rawContent = body.rawContent || `From: ${from}\r\nTo: ${to}\r\nSubject: ${subject}\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nHello from direct test`;
 
 		const encoder = new TextEncoder();
