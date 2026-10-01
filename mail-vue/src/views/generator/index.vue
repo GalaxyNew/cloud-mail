@@ -23,19 +23,18 @@
           class="theme-mode-switch" 
           :class="uiStore.dark ? 'is-scifi' : 'is-white'"
           @click="toggleTheme"
-          :title="uiStore.dark ? '切换为原版白色风格' : '切换为新版科幻风格'"
+          :title="uiStore.dark ? '科幻' : '淡雅'"
         >
           <div class="switch-inner">
             <span class="status-indicator"></span>
             <Icon :icon="uiStore.dark ? 'solar:planet-3-bold-duotone' : 'solar:sun-2-bold-duotone'" width="16" height="16" />
-            <span class="mode-title">{{ uiStore.dark ? '新版科幻风' : '原版白色风' }}</span>
-            <span class="mode-tag">{{ uiStore.dark ? '切原版白' : '切科幻版' }}</span>
+            <span class="mode-title">{{ uiStore.dark ? '科幻' : '淡雅' }}</span>
           </div>
         </div>
 
         <button class="nav-btn" @click="goToLogin">
           <Icon icon="solar:login-2-bold" width="16" height="16" />
-          <span>{{ hasToken ? '进入邮箱控制台' : '返回登录界面' }}</span>
+          <span>{{ hasToken ? '进入邮箱控制台' : '登录' }}</span>
         </button>
       </div>
     </header>
@@ -57,10 +56,6 @@
                 <h1 class="card-title">快速生成新邮箱</h1>
                 <p class="card-subtitle">无需身份验证 · 即开即用 · 固定后缀 @tv987.shop</p>
               </div>
-            </div>
-            <div class="rule-tag">
-              <Icon icon="solar:shield-check-bold" width="14" height="14" />
-              <span>格式：igor + 时间戳后4位 + 2位随机字母</span>
             </div>
           </div>
 
@@ -1134,17 +1129,9 @@ onMounted(() => {
     }
 
     .mode-title {
-      font-family: 'Orbitron', sans-serif;
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    .mode-tag {
-      background: rgba(0, 242, 254, 0.15);
-      padding: 1px 6px;
-      border-radius: 10px;
-      font-size: 10px;
-      color: #7dd3fc;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.5px;
     }
   }
 
@@ -1169,14 +1156,7 @@ onMounted(() => {
     .mode-title {
       font-weight: 600;
       font-size: 12px;
-    }
-
-    .mode-tag {
-      background: #bae7ff;
-      padding: 1px 6px;
-      border-radius: 10px;
-      font-size: 10px;
-      color: #0958d9;
+      letter-spacing: 0.5px;
     }
   }
 }

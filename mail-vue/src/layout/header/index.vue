@@ -14,19 +14,18 @@
       </div>
     </div>
     <div class="toolbar">
-      <!-- Dual Style Switcher: Toggle between Original White and New Sci-Fi -->
+      <!-- Dual Style Switcher: Toggle between 科幻 and 淡雅 -->
       <div 
         class="theme-mode-switch" 
         :class="uiStore.dark ? 'is-scifi' : 'is-white'" 
         @click="openDark($event)"
-        :title="uiStore.dark ? '当前为新版科幻风，点击切换为原版白色风格' : '当前为原版白色风格，点击切换为新版科幻风'"
+        :title="uiStore.dark ? '科幻' : '淡雅'"
       >
         <div class="switch-inner">
           <span class="status-indicator"></span>
           <Icon v-if="uiStore.dark" icon="solar:planet-bold" class="mode-icon" width="16" height="16" />
           <Icon v-else icon="solar:sun-2-bold" class="mode-icon" width="16" height="16" />
-          <span class="mode-title">{{ uiStore.dark ? '新版科幻风' : '原版白色风' }}</span>
-          <span class="mode-tag">{{ uiStore.dark ? '切原版白' : '切科幻版' }}</span>
+          <span class="mode-title">{{ uiStore.dark ? '科幻' : '淡雅' }}</span>
         </div>
       </div>
       <div class="notice icon-item" @click="openNotice" title="Broadcast Notice">
@@ -359,18 +358,9 @@ function formatName(email) {
     }
 
     .mode-title {
-      font-family: 'Orbitron', sans-serif;
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    .mode-tag {
-      background: rgba(0, 242, 254, 0.15);
-      padding: 1px 6px;
-      border-radius: 10px;
-      font-size: 10px;
-      color: #7dd3fc;
-      margin-left: 2px;
+      font-weight: 600;
+      font-size: 12px;
+      letter-spacing: 0.5px;
     }
   }
 
@@ -396,18 +386,9 @@ function formatName(email) {
     }
 
     .mode-title {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-weight: 600;
       font-size: 12px;
-    }
-
-    .mode-tag {
-      background: #bae7ff;
-      padding: 1px 6px;
-      border-radius: 10px;
-      font-size: 10px;
-      color: #0958d9;
-      margin-left: 2px;
+      letter-spacing: 0.5px;
     }
   }
 }
