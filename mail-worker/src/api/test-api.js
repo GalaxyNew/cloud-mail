@@ -120,3 +120,27 @@ app.post('/test/simulate-receive', async (c) => {
 		return c.json({ success: false, error: err.stack || err.message });
 	}
 });
+
+app.get('/test/inbox-test/:userId', async (c) => {
+	try {
+		const userId = Number(c.req.param('userId'));
+		const accountRow = await orm(c).select().from(account).where(and(eq(account.userId, userId), eq(account.isDel, 0))).limit(1).get();
+		if (!accountRow) return c.json({ success: false, message: 'no account' });
+		const res = await emailService.emailList(c, {
+			accountId: accountRow.accountId,
+			allReceive: accountRow.allReceive,
+			size: 10,
+			type: 0
+		}, userId);
+		return c.json({
+			success: true,
+			userId,
+			account: accountRow.email,
+			allReceive: accountRow.allReceive,
+			total: res.total,
+			list: res.list.map(e => ({ emailId: e.emailId, toEmail: e.toEmail, subject: e.subject, sendEmail: e.sendEmail }))
+		});
+	} catch (err) {
+		return c.json({ success: false, error: err.stack || err.message });
+	}
+});
