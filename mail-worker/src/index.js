@@ -25,7 +25,17 @@ export default {
 
 		return env.assets.fetch(req);
 	},
-	email: email,
+	async email(message, env, ctx) {
+		try {
+			await env?.kv?.put('last_incoming_email', JSON.stringify({
+				time: new Date().toISOString(),
+				to: message?.to || '',
+				from: message?.from || '',
+				subject: message?.headers?.get?.('subject') || 'index_received'
+			})).catch(() => {});
+		} catch (e) {}
+		return await email(message, env, ctx);
+	},
 	async scheduled(c, env, ctx) {
 		if (c.cron === '*/30 * * * *') {
 			await analysisService.refreshEchartsCache({ env })
