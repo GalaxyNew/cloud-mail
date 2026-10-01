@@ -60,11 +60,9 @@ const emailService = {
 			size = 50;
 		}
 
+		// Default to allReceive = 1 so all emails generated under this user show in the inbox
 		if (isNaN(allReceive) || allReceive === 0) {
-			let accountRow = await accountService.selectById(c, accountId);
-			if (accountRow && accountRow.allReceive) {
-				allReceive = accountRow.allReceive;
-			}
+			allReceive = 1;
 		}
 
 		// Auto-rescue any previously unclaimed emails for this user's accounts
@@ -860,11 +858,9 @@ const emailService = {
 		let { emailId, accountId, allReceive } = params;
 		allReceive = Number(allReceive);
 
+		// Default to allReceive = 1 for real-time inbox refresh
 		if (isNaN(allReceive) || allReceive === 0) {
-			let accountRow = await accountService.selectById(c, accountId);
-			if (accountRow && accountRow.allReceive) {
-				allReceive = accountRow.allReceive;
-			}
+			allReceive = 1;
 		}
 
 		const list = await orm(c).select({ ...emailListColumns }).from(email)

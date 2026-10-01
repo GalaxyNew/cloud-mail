@@ -131,6 +131,10 @@ const accountService = {
 			lastSort = 9999999999;
 		}
 
+		try {
+			orm(c).update(account).set({ allReceive: 1 }).where(and(eq(account.userId, userId), eq(account.isDel, isDel.NORMAL))).run().catch(() => {});
+		} catch (e) {}
+
 		return orm(c).select().from(account).where(
 			and(
 				eq(account.userId, userId),

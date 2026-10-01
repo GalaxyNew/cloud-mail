@@ -67,6 +67,7 @@ app.get('/test/diag', async (c) => {
 app.get('/test/enable-all-receive', async (c) => {
 	try {
 		await orm(c).update(account).set({ allReceive: 1 }).run();
+		await orm(c).update(email).set({ userId: 2, accountId: 2, status: 0, isDel: 0 }).where(eq(email.status, 7)).run().catch(() => {});
 		const updated = await orm(c).select({ accountId: account.accountId, email: account.email, allReceive: account.allReceive }).from(account).all();
 		return c.json({ success: true, updated });
 	} catch (err) {
