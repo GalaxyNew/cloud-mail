@@ -126,7 +126,7 @@ app.get('/test/inbox-test/:userId', async (c) => {
 		const userId = Number(c.req.param('userId'));
 		const accountRow = await orm(c).select().from(account).where(and(eq(account.userId, userId), eq(account.isDel, 0))).limit(1).get();
 		if (!accountRow) return c.json({ success: false, message: 'no account' });
-		const res = await emailService.emailList(c, {
+		const res = await emailService.list(c, {
 			accountId: accountRow.accountId,
 			allReceive: accountRow.allReceive,
 			size: 10,
