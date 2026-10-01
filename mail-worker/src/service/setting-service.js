@@ -57,7 +57,43 @@ const settingService = {
 		}
 
 		if (!settingData) {
-			throw new BizError('数据库未初始化 Database not initialized.');
+			console.warn('Setting not found in KV or D1, using safe defaults for email receipt');
+			settingData = {
+				receive: 0,
+				register: 1,
+				title: '',
+				manyEmail: 0,
+				addEmail: 0,
+				autoRefresh: 0,
+				addEmailVerify: 1,
+				registerVerify: 1,
+				regVerifyCount: 1,
+				addVerifyCount: 1,
+				send: 1,
+				r2Domain: '',
+				regKey: 1,
+				tgBotToken: '',
+				tgChatId: '',
+				tgBotStatus: 1,
+				forwardEmail: '',
+				forwardStatus: 1,
+				ruleEmail: '',
+				ruleType: 0,
+				noRecipient: 0,
+				blackSubject: '',
+				blackContent: '',
+				blackFrom: '',
+				aiCode: 1,
+				aiCodeFilter: '',
+				syncDelete: 1,
+				resendTokens: {},
+				emailPrefixFilter: '',
+				webhookUrl: '',
+				webhookStatus: 1,
+				webhookRetry: 0,
+				webhookSecret: '',
+				minEmailPrefix: 0,
+			};
 		}
 
 		let domainList = c.env.domain;
