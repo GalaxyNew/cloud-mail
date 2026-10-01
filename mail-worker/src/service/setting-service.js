@@ -41,15 +41,21 @@ const settingService = {
 
 		if (!settingData) {
 			try {
-				const settingRow = await orm(c).select().from(setting).get();
-				if (settingRow) {
-					try {
-						settingRow.resendTokens = typeof settingRow.resendTokens === 'string' ? JSON.parse(settingRow.resendTokens || '{}') : (settingRow.resendTokens || {});
-					} catch (e) {
-						settingRow.resendTokens = {};
+				const hasDb = !!(c.env?.db || c.env?.DB);
+				if (hasDb) {
+					const settingRow = await orm(c).select().from(setting).get();
+					if (settingRow) {
+						try {
+							settingRow.resendTokens = typeof settingRow.resendTokens === 'string' ? JSON.parse(settingRow.resendTokens || '{}') : (settingRow.resendTokens || {});
+						} catch (e) {
+							settingRow.resendTokens = {};
+						}
+						settingData = settingRow;
+						const kv = c.env?.kv || c.env?.KV;
+						if (kv) {
+							await kv.put(KvConst.SETTING, JSON.stringify(settingRow));
+						}
 					}
-					settingData = settingRow;
-					await c.env.kv.put(KvConst.SETTING, JSON.stringify(settingRow));
 				}
 			} catch (dbErr) {
 				console.error('Failed to load setting from DB:', dbErr);

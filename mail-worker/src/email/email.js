@@ -247,11 +247,7 @@ export async function email(message, env, ctx) {
 
 	} catch (e) {
 		console.error('邮件接收异常: ', e?.stack || e);
-		try {
-			message.setReject(`Service temporarily unavailable: ${e?.message || 'internal error'}`);
-		} catch (rejectErr) {
-			console.error('setReject error:', rejectErr);
-		}
+		throw e;
 	}
 }
 
